@@ -16,10 +16,13 @@ import { Route as AppTrackingRouteImport } from './routes/app/tracking'
 import { Route as AppRateRouteImport } from './routes/app/rate'
 import { Route as AppPayRouteImport } from './routes/app/pay'
 import { Route as AppOnboardingRouteImport } from './routes/app/onboarding'
+import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppLoginRouteImport } from './routes/app/login'
 import { Route as AppHomeRouteImport } from './routes/app/home'
+import { Route as AppHistoryRouteImport } from './routes/app/history'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as AppCartRouteImport } from './routes/app/cart'
+import { Route as AppAccountRouteImport } from './routes/app/account'
 import { Route as AppQrIndexRouteImport } from './routes/app/qr/index'
 import { Route as AppQrConfirmRouteImport } from './routes/app/qr/confirm'
 
@@ -58,6 +61,11 @@ const AppOnboardingRoute = AppOnboardingRouteImport.update({
   path: '/app/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/app/notifications',
+  path: '/app/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppLoginRoute = AppLoginRouteImport.update({
   id: '/app/login',
   path: '/app/login',
@@ -68,6 +76,11 @@ const AppHomeRoute = AppHomeRouteImport.update({
   path: '/app/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/app/history',
+  path: '/app/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppCheckoutRoute = AppCheckoutRouteImport.update({
   id: '/app/checkout',
   path: '/app/checkout',
@@ -76,6 +89,11 @@ const AppCheckoutRoute = AppCheckoutRouteImport.update({
 const AppCartRoute = AppCartRouteImport.update({
   id: '/app/cart',
   path: '/app/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/app/account',
+  path: '/app/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppQrIndexRoute = AppQrIndexRouteImport.update({
@@ -91,10 +109,13 @@ const AppQrConfirmRoute = AppQrConfirmRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
@@ -106,10 +127,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
@@ -122,10 +146,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
@@ -139,10 +166,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app/account'
     | '/app/cart'
     | '/app/checkout'
+    | '/app/history'
     | '/app/home'
     | '/app/login'
+    | '/app/notifications'
     | '/app/onboarding'
     | '/app/pay'
     | '/app/rate'
@@ -154,10 +184,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app/account'
     | '/app/cart'
     | '/app/checkout'
+    | '/app/history'
     | '/app/home'
     | '/app/login'
+    | '/app/notifications'
     | '/app/onboarding'
     | '/app/pay'
     | '/app/rate'
@@ -169,10 +202,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/app/account'
     | '/app/cart'
     | '/app/checkout'
+    | '/app/history'
     | '/app/home'
     | '/app/login'
+    | '/app/notifications'
     | '/app/onboarding'
     | '/app/pay'
     | '/app/rate'
@@ -185,10 +221,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppAccountRoute: typeof AppAccountRoute
   AppCartRoute: typeof AppCartRoute
   AppCheckoutRoute: typeof AppCheckoutRoute
+  AppHistoryRoute: typeof AppHistoryRoute
   AppHomeRoute: typeof AppHomeRoute
   AppLoginRoute: typeof AppLoginRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppPayRoute: typeof AppPayRoute
   AppRateRoute: typeof AppRateRoute
@@ -250,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/app/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/login': {
       id: '/app/login'
       path: '/app/login'
@@ -264,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/history': {
+      id: '/app/history'
+      path: '/app/history'
+      fullPath: '/app/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/checkout': {
       id: '/app/checkout'
       path: '/app/checkout'
@@ -276,6 +329,13 @@ declare module '@tanstack/react-router' {
       path: '/app/cart'
       fullPath: '/app/cart'
       preLoaderRoute: typeof AppCartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/account': {
+      id: '/app/account'
+      path: '/app/account'
+      fullPath: '/app/account'
+      preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/qr/': {
@@ -297,10 +357,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppAccountRoute: AppAccountRoute,
   AppCartRoute: AppCartRoute,
   AppCheckoutRoute: AppCheckoutRoute,
+  AppHistoryRoute: AppHistoryRoute,
   AppHomeRoute: AppHomeRoute,
   AppLoginRoute: AppLoginRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppPayRoute: AppPayRoute,
   AppRateRoute: AppRateRoute,
