@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppWalletRouteImport } from './routes/app/wallet'
 import { Route as AppTrackingRouteImport } from './routes/app/tracking'
 import { Route as AppRateRouteImport } from './routes/app/rate'
 import { Route as AppPayRouteImport } from './routes/app/pay'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppWalletRoute = AppWalletRouteImport.update({
+  id: '/app/wallet',
+  path: '/app/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppTrackingRoute = AppTrackingRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
+  '/app/wallet': typeof AppWalletRoute
   '/app/': typeof AppIndexRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr/': typeof AppQrIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
+  '/app/wallet': typeof AppWalletRoute
   '/app': typeof AppIndexRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr': typeof AppQrIndexRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/app/pay': typeof AppPayRoute
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
+  '/app/wallet': typeof AppWalletRoute
   '/app/': typeof AppIndexRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr/': typeof AppQrIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/app/pay'
     | '/app/rate'
     | '/app/tracking'
+    | '/app/wallet'
     | '/app/'
     | '/app/qr/confirm'
     | '/app/qr/'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/app/pay'
     | '/app/rate'
     | '/app/tracking'
+    | '/app/wallet'
     | '/app'
     | '/app/qr/confirm'
     | '/app/qr'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/app/pay'
     | '/app/rate'
     | '/app/tracking'
+    | '/app/wallet'
     | '/app/'
     | '/app/qr/confirm'
     | '/app/qr/'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   AppPayRoute: typeof AppPayRoute
   AppRateRoute: typeof AppRateRoute
   AppTrackingRoute: typeof AppTrackingRoute
+  AppWalletRoute: typeof AppWalletRoute
   AppIndexRoute: typeof AppIndexRoute
   AppQrConfirmRoute: typeof AppQrConfirmRoute
   AppQrIndexRoute: typeof AppQrIndexRoute
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/wallet': {
+      id: '/app/wallet'
+      path: '/app/wallet'
+      fullPath: '/app/wallet'
+      preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/tracking': {
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppPayRoute: AppPayRoute,
   AppRateRoute: AppRateRoute,
   AppTrackingRoute: AppTrackingRoute,
+  AppWalletRoute: AppWalletRoute,
   AppIndexRoute: AppIndexRoute,
   AppQrConfirmRoute: AppQrConfirmRoute,
   AppQrIndexRoute: AppQrIndexRoute,
