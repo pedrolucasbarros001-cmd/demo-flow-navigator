@@ -14,6 +14,7 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppOnboardingRouteImport } from './routes/app/onboarding'
 import { Route as AppLoginRouteImport } from './routes/app/login'
 import { Route as AppHomeRouteImport } from './routes/app/home'
+import { Route as AppCartRouteImport } from './routes/app/cart'
 import { Route as AppQrIndexRouteImport } from './routes/app/qr/index'
 import { Route as AppQrConfirmRouteImport } from './routes/app/qr/confirm'
 
@@ -42,6 +43,11 @@ const AppHomeRoute = AppHomeRouteImport.update({
   path: '/app/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppCartRoute = AppCartRouteImport.update({
+  id: '/app/cart',
+  path: '/app/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppQrIndexRoute = AppQrIndexRouteImport.update({
   id: '/app/qr/',
   path: '/app/qr/',
@@ -55,6 +61,7 @@ const AppQrConfirmRoute = AppQrConfirmRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app/cart': typeof AppCartRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app/cart': typeof AppCartRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app/cart': typeof AppCartRoute
   '/app/home': typeof AppHomeRoute
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app/cart'
     | '/app/home'
     | '/app/login'
     | '/app/onboarding'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app/cart'
     | '/app/home'
     | '/app/login'
     | '/app/onboarding'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/app/cart'
     | '/app/home'
     | '/app/login'
     | '/app/onboarding'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppCartRoute: typeof AppCartRoute
   AppHomeRoute: typeof AppHomeRoute
   AppLoginRoute: typeof AppLoginRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/cart': {
+      id: '/app/cart'
+      path: '/app/cart'
+      fullPath: '/app/cart'
+      preLoaderRoute: typeof AppCartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/qr/': {
       id: '/app/qr/'
       path: '/app/qr'
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppCartRoute: AppCartRoute,
   AppHomeRoute: AppHomeRoute,
   AppLoginRoute: AppLoginRoute,
   AppOnboardingRoute: AppOnboardingRoute,
