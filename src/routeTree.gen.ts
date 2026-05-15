@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KdsIndexRouteImport } from './routes/kds/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AppWalletRouteImport } from './routes/app/wallet'
 import { Route as AppTrackingRouteImport } from './routes/app/tracking'
 import { Route as AppRateRouteImport } from './routes/app/rate'
@@ -23,17 +25,35 @@ import { Route as AppHistoryRouteImport } from './routes/app/history'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as AppCartRouteImport } from './routes/app/cart'
 import { Route as AppAccountRouteImport } from './routes/app/account'
+import { Route as AdminTablesRouteImport } from './routes/admin/tables'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminReportsRouteImport } from './routes/admin/reports'
+import { Route as AdminPromosRouteImport } from './routes/admin/promos'
+import { Route as AdminMenuRouteImport } from './routes/admin/menu'
+import { Route as AdminCustomersRouteImport } from './routes/admin/customers'
 import { Route as AppQrIndexRouteImport } from './routes/app/qr/index'
+import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
 import { Route as AppQrConfirmRouteImport } from './routes/app/qr/confirm'
+import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KdsIndexRoute = KdsIndexRouteImport.update({
+  id: '/kds/',
+  path: '/kds/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWalletRoute = AppWalletRouteImport.update({
@@ -96,9 +116,44 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/app/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminTablesRoute = AdminTablesRouteImport.update({
+  id: '/admin/tables',
+  path: '/admin/tables',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPromosRoute = AdminPromosRouteImport.update({
+  id: '/admin/promos',
+  path: '/admin/promos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMenuRoute = AdminMenuRouteImport.update({
+  id: '/admin/menu',
+  path: '/admin/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCustomersRoute = AdminCustomersRouteImport.update({
+  id: '/admin/customers',
+  path: '/admin/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppQrIndexRoute = AppQrIndexRouteImport.update({
   id: '/app/qr/',
   path: '/app/qr/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
+  id: '/admin/orders/',
+  path: '/admin/orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppQrConfirmRoute = AppQrConfirmRouteImport.update({
@@ -106,9 +161,20 @@ const AppQrConfirmRoute = AppQrConfirmRouteImport.update({
   path: '/app/qr/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminOrdersIdRoute = AdminOrdersIdRouteImport.update({
+  id: '/admin/orders/$id',
+  path: '/admin/orders/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/promos': typeof AdminPromosRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tables': typeof AdminTablesRoute
   '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -121,12 +187,22 @@ export interface FileRoutesByFullPath {
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
   '/app/wallet': typeof AppWalletRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/kds/': typeof KdsIndexRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
   '/app/qr/': typeof AppQrIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/promos': typeof AdminPromosRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tables': typeof AdminTablesRoute
   '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -139,13 +215,23 @@ export interface FileRoutesByTo {
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
   '/app/wallet': typeof AppWalletRoute
+  '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
+  '/kds': typeof KdsIndexRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
+  '/admin/orders': typeof AdminOrdersIndexRoute
   '/app/qr': typeof AppQrIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/customers': typeof AdminCustomersRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/promos': typeof AdminPromosRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tables': typeof AdminTablesRoute
   '/app/account': typeof AppAccountRoute
   '/app/cart': typeof AppCartRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -158,14 +244,24 @@ export interface FileRoutesById {
   '/app/rate': typeof AppRateRoute
   '/app/tracking': typeof AppTrackingRoute
   '/app/wallet': typeof AppWalletRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/kds/': typeof KdsIndexRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/app/qr/confirm': typeof AppQrConfirmRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
   '/app/qr/': typeof AppQrIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin/customers'
+    | '/admin/menu'
+    | '/admin/promos'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/tables'
     | '/app/account'
     | '/app/cart'
     | '/app/checkout'
@@ -178,12 +274,22 @@ export interface FileRouteTypes {
     | '/app/rate'
     | '/app/tracking'
     | '/app/wallet'
+    | '/admin/'
     | '/app/'
+    | '/kds/'
+    | '/admin/orders/$id'
     | '/app/qr/confirm'
+    | '/admin/orders/'
     | '/app/qr/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/customers'
+    | '/admin/menu'
+    | '/admin/promos'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/tables'
     | '/app/account'
     | '/app/cart'
     | '/app/checkout'
@@ -196,12 +302,22 @@ export interface FileRouteTypes {
     | '/app/rate'
     | '/app/tracking'
     | '/app/wallet'
+    | '/admin'
     | '/app'
+    | '/kds'
+    | '/admin/orders/$id'
     | '/app/qr/confirm'
+    | '/admin/orders'
     | '/app/qr'
   id:
     | '__root__'
     | '/'
+    | '/admin/customers'
+    | '/admin/menu'
+    | '/admin/promos'
+    | '/admin/reports'
+    | '/admin/settings'
+    | '/admin/tables'
     | '/app/account'
     | '/app/cart'
     | '/app/checkout'
@@ -214,13 +330,23 @@ export interface FileRouteTypes {
     | '/app/rate'
     | '/app/tracking'
     | '/app/wallet'
+    | '/admin/'
     | '/app/'
+    | '/kds/'
+    | '/admin/orders/$id'
     | '/app/qr/confirm'
+    | '/admin/orders/'
     | '/app/qr/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminMenuRoute: typeof AdminMenuRoute
+  AdminPromosRoute: typeof AdminPromosRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminTablesRoute: typeof AdminTablesRoute
   AppAccountRoute: typeof AppAccountRoute
   AppCartRoute: typeof AppCartRoute
   AppCheckoutRoute: typeof AppCheckoutRoute
@@ -233,8 +359,12 @@ export interface RootRouteChildren {
   AppRateRoute: typeof AppRateRoute
   AppTrackingRoute: typeof AppTrackingRoute
   AppWalletRoute: typeof AppWalletRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   AppIndexRoute: typeof AppIndexRoute
+  KdsIndexRoute: typeof KdsIndexRoute
+  AdminOrdersIdRoute: typeof AdminOrdersIdRoute
   AppQrConfirmRoute: typeof AppQrConfirmRoute
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
   AppQrIndexRoute: typeof AppQrIndexRoute
 }
 
@@ -247,11 +377,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kds/': {
+      id: '/kds/'
+      path: '/kds'
+      fullPath: '/kds/'
+      preLoaderRoute: typeof KdsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/wallet': {
@@ -338,11 +482,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/tables': {
+      id: '/admin/tables'
+      path: '/admin/tables'
+      fullPath: '/admin/tables'
+      preLoaderRoute: typeof AdminTablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/promos': {
+      id: '/admin/promos'
+      path: '/admin/promos'
+      fullPath: '/admin/promos'
+      preLoaderRoute: typeof AdminPromosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/menu': {
+      id: '/admin/menu'
+      path: '/admin/menu'
+      fullPath: '/admin/menu'
+      preLoaderRoute: typeof AdminMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/customers': {
+      id: '/admin/customers'
+      path: '/admin/customers'
+      fullPath: '/admin/customers'
+      preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/qr/': {
       id: '/app/qr/'
       path: '/app/qr'
       fullPath: '/app/qr/'
       preLoaderRoute: typeof AppQrIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/orders/': {
+      id: '/admin/orders/'
+      path: '/admin/orders'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminOrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/qr/confirm': {
@@ -352,11 +545,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppQrConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/orders/$id': {
+      id: '/admin/orders/$id'
+      path: '/admin/orders/$id'
+      fullPath: '/admin/orders/$id'
+      preLoaderRoute: typeof AdminOrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminCustomersRoute: AdminCustomersRoute,
+  AdminMenuRoute: AdminMenuRoute,
+  AdminPromosRoute: AdminPromosRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminTablesRoute: AdminTablesRoute,
   AppAccountRoute: AppAccountRoute,
   AppCartRoute: AppCartRoute,
   AppCheckoutRoute: AppCheckoutRoute,
@@ -369,8 +575,12 @@ const rootRouteChildren: RootRouteChildren = {
   AppRateRoute: AppRateRoute,
   AppTrackingRoute: AppTrackingRoute,
   AppWalletRoute: AppWalletRoute,
+  AdminIndexRoute: AdminIndexRoute,
   AppIndexRoute: AppIndexRoute,
+  KdsIndexRoute: KdsIndexRoute,
+  AdminOrdersIdRoute: AdminOrdersIdRoute,
   AppQrConfirmRoute: AppQrConfirmRoute,
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
   AppQrIndexRoute: AppQrIndexRoute,
 }
 export const routeTree = rootRouteImport
