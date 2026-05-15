@@ -15,6 +15,7 @@ import { Route as AppOnboardingRouteImport } from './routes/app/onboarding'
 import { Route as AppLoginRouteImport } from './routes/app/login'
 import { Route as AppHomeRouteImport } from './routes/app/home'
 import { Route as AppQrIndexRouteImport } from './routes/app/qr/index'
+import { Route as AppQrConfirmRouteImport } from './routes/app/qr/confirm'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const AppQrIndexRoute = AppQrIndexRouteImport.update({
   path: '/app/qr/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppQrConfirmRoute = AppQrConfirmRouteImport.update({
+  id: '/app/qr/confirm',
+  path: '/app/qr/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app/': typeof AppIndexRoute
+  '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr/': typeof AppQrIndexRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app': typeof AppIndexRoute
+  '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr': typeof AppQrIndexRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/app/login': typeof AppLoginRoute
   '/app/onboarding': typeof AppOnboardingRoute
   '/app/': typeof AppIndexRoute
+  '/app/qr/confirm': typeof AppQrConfirmRoute
   '/app/qr/': typeof AppQrIndexRoute
 }
 export interface FileRouteTypes {
@@ -80,9 +89,17 @@ export interface FileRouteTypes {
     | '/app/login'
     | '/app/onboarding'
     | '/app/'
+    | '/app/qr/confirm'
     | '/app/qr/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app/home' | '/app/login' | '/app/onboarding' | '/app' | '/app/qr'
+  to:
+    | '/'
+    | '/app/home'
+    | '/app/login'
+    | '/app/onboarding'
+    | '/app'
+    | '/app/qr/confirm'
+    | '/app/qr'
   id:
     | '__root__'
     | '/'
@@ -90,6 +107,7 @@ export interface FileRouteTypes {
     | '/app/login'
     | '/app/onboarding'
     | '/app/'
+    | '/app/qr/confirm'
     | '/app/qr/'
   fileRoutesById: FileRoutesById
 }
@@ -99,6 +117,7 @@ export interface RootRouteChildren {
   AppLoginRoute: typeof AppLoginRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppQrConfirmRoute: typeof AppQrConfirmRoute
   AppQrIndexRoute: typeof AppQrIndexRoute
 }
 
@@ -146,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppQrIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/qr/confirm': {
+      id: '/app/qr/confirm'
+      path: '/app/qr/confirm'
+      fullPath: '/app/qr/confirm'
+      preLoaderRoute: typeof AppQrConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -155,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppLoginRoute: AppLoginRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppIndexRoute: AppIndexRoute,
+  AppQrConfirmRoute: AppQrConfirmRoute,
   AppQrIndexRoute: AppQrIndexRoute,
 }
 export const routeTree = rootRouteImport
