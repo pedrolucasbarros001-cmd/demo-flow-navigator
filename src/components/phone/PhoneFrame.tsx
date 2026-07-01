@@ -5,17 +5,18 @@ import { useAppStore } from "@/store/app-store";
 
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-0 md:p-8">
+    <div className="min-h-screen w-full bg-white">
       <motion.div
-        initial={{ opacity: 0, y: 8, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.25 }}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
         className="phone-frame"
       >
         {children}
       </motion.div>
     </div>
   );
+
 }
 
 export function PhoneTopBar({
