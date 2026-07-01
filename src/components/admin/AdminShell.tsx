@@ -38,7 +38,7 @@ export function AdminShell({ title, children }: { title: string; children: React
             );
           })}
         </nav>
-        <Link to="/" className="text-xs text-ink/50 hover:text-ink">← demo</Link>
+        
       </aside>
       <main className="flex-1 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
