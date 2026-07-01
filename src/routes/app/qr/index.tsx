@@ -20,7 +20,7 @@ function QRScan() {
   }, [navigate, setTable]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame !bg-[#0e0f12] !border-[#0e0f12]">
         <div className="flex items-center justify-between mt-2">
           <button onClick={() => navigate({ to: "/app/home" })} className="iconbtn !bg-white/10 !border-white !text-white">×</button>
