@@ -96,7 +96,7 @@ function Onboarding() {
         >
           {step < slides.length - 1 ? "Seguinte" : "Vamos começar"}
         </button>
-        <Link to="/" className="text-center text-xs text-ink/50 mt-3">← demo</Link>
+        
       </div>
     </div>
   );
