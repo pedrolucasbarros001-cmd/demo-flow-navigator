@@ -5,25 +5,15 @@ import { useAppStore } from "@/store/app-store";
 
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4 md:p-8">
-      <div className="flex flex-col items-center gap-6">
-        <Link
-          to="/"
-          className="font-hand text-2xl text-ink/70 hover:text-accent transition-colors"
-        >
-          ← voltar à demo
-        </Link>
-        <motion.div
-          initial={{ opacity: 0, y: 8, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.25 }}
-          className="phone-frame"
-          key={typeof window !== "undefined" ? window.location.pathname : "p"}
-        >
-          {children}
-        </motion.div>
-        <div className="font-hand text-sm text-ink/50">comaqui · demo</div>
-      </div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-0 md:p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.25 }}
+        className="phone-frame"
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }
