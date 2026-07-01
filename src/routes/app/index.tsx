@@ -17,7 +17,7 @@ function Splash() {
     return () => clearTimeout(t);
   }, [navigate, hasOnboarded]);
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame items-center justify-center">
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <motion.div

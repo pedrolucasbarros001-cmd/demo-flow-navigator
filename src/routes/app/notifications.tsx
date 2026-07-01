@@ -5,7 +5,7 @@ export const Route = createFileRoute("/app/notifications")({ component: Notif })
 
 function Notif() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame">
         <div className="flex items-center justify-between mt-2">
           <Link to="/app/account" className="iconbtn">←</Link>

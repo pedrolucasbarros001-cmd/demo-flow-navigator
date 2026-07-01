@@ -19,7 +19,7 @@ function Cart() {
   if (table) return <CartTable />;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame">
         <div className="flex items-center justify-between mt-2">
           <button onClick={() => navigate({ to: "/app/home" })} className="iconbtn">←</button>
@@ -103,7 +103,7 @@ function Row({ label, value, muted }: { label: string; value: string; muted?: bo
 
 function CartEmpty() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame">
         <div className="flex items-center justify-between mt-2">
           <Link to="/app/home" className="iconbtn">←</Link>
@@ -141,7 +141,7 @@ function CartTable() {
   const tableTotal = myTotal + otherTotal;
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-paper p-4">
+    <div className="min-h-screen w-full bg-white">
       <div className="phone-frame">
         <div className="flex items-center justify-between mt-2">
           <button onClick={() => navigate({ to: "/app/home" })} className="iconbtn">←</button>
