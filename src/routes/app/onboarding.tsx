@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/store/app-store";
@@ -96,7 +96,7 @@ function Onboarding() {
         >
           {step < slides.length - 1 ? "Seguinte" : "Vamos começar"}
         </button>
-        <Link to="/" className="text-center text-xs text-ink/50 mt-3">← demo</Link>
+        
       </div>
     </div>
   );
