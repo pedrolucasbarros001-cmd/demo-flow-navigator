@@ -32,7 +32,7 @@ function KDS() {
     <div className="min-h-screen bg-ink text-white p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Link to="/" className="font-hand text-xl text-accent">← demo</Link>
+          <div className="w-8 h-8 rounded-full bg-accent border-2 border-white flex items-center justify-center text-white font-bold">c</div>
           <div className="font-bold text-2xl">comaqui · cozinha</div>
         </div>
         <div className="flex items-center gap-3 text-sm">
