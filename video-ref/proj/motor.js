@@ -90,7 +90,7 @@ function mede() {
     if (tl.op.oculto) return;
     const lous = !!tl.op.fx && tl.op.fx !== 'final';
     tl.el.style.display = 'block'; tl.el.style.transform = 'none';
-    const larg = W - 2 * M - (tl.op.carimbo ? 116 : 0);
+    const larg = W - 2 * 95 - (tl.op.carimbo ? 116 : 0);
     tl.linhas.forEach(l => {
       l.el.style.fontSize = '100px';
       const nat = l.inner.getBoundingClientRect().width || 1;
@@ -102,7 +102,7 @@ function mede() {
       l.el.style.textAlign = tl.al === 'c' ? 'center' : tl.al === 'r' ? 'right' : 'left';
     });
     const r = tl.bloco.getBoundingClientRect();
-    const x = tl.al === 'c' ? (W - r.width) / 2 : tl.al === 'r' ? W - M - r.width : M;
+    const x = tl.al === 'c' ? (W - r.width) / 2 : tl.al === 'r' ? W - 95 - r.width : 95;
     const yc = (tl.op.y != null ? tl.op.y : 0.5) * H;
     const y = lous ? Math.max(90, yc - r.height / 2) : yc - r.height / 2;
     tl.bloco.style.left = x + 'px'; tl.bloco.style.top = y + 'px';
@@ -138,9 +138,12 @@ function montaCenario(tl) {
     add('', z, { left: x + 'px', top: y + 'px', width: sz + 'px', height: sz + 'px', borderRadius: '50%', background: bg === 'r' ? 'rgba(255,220,200,.5)' : 'rgba(255,110,80,.75)', boxShadow: `0 0 ${sz * 2}px rgba(255,60,30,.8)`, filter: z < -500 ? 'blur(3px)' : 'none' }, (d, t) => `translateY(${-v * t}px)`);
   }
   const palavra = tl.palavras.map(p => p.el.textContent).sort((a, b) => b.length - a.length)[0] || '';
-  const tipos = bg === 'r' ? ['eco', 'forma', 'raios', 'eco'] : bg === 'c' ? ['eco', 'codigo', 'forma', 'grade'] : ['eco', 'raios', 'grade', 'forma', 'codigo'];
-  const escolha = [tipos[Math.floor(r() * tipos.length)]];
-  if (r() < 0.5) { const o = tipos[Math.floor(r() * tipos.length)]; if (o !== escolha[0]) escolha.push(o); }
+  // sorteio com pesos: eco e raios são frequentes; círculo e código são raros, para não repetir
+  const temVerm = tl.palavras.some(p => p.dest || (p.soco && bg === 'c'));
+  const pesos = bg === 'r' ? [['eco', 5], ['raios', 4], ['forma', 1]] : bg === 'c' ? [['eco', 5], ['grade', 3], ['codigo', 1], ['nada', 3]] : [['eco', 4], ['raios', 4], ['grade', 3], ['forma', temVerm ? 0 : 1.2], ['codigo', 0.8]];
+  const sorteia = () => { let tot = pesos.reduce((a, b) => a + b[1], 0), x = r() * tot; for (const [n, w] of pesos) { if ((x -= w) < 0) return n; } return 'eco'; };
+  const escolha = [sorteia()];
+  if (r() < 0.3) { const o = sorteia(); if (o !== escolha[0] && o !== 'codigo' && o !== 'forma') escolha.push(o); }
   escolha.forEach(tp => {
     if (tp === 'eco') {
       const cor = bg === 'c' ? 'rgba(18,16,16,.16)' : bg === 'r' ? 'rgba(255,235,225,.28)' : 'rgba(223,25,4,.5)';
@@ -537,12 +540,12 @@ function render(t) {
     let x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0;
     const d = tl.dir;
     switch (tl.mov) {
-      case 0: ry = mix(d * 40, d * 6, ce); z = mix(-150, 160, dv); x = d * 520 * (1 - wq); break;            // órbita
+      case 0: ry = mix(d * 32, d * 5, ce); z = mix(-150, 140, dv); x = d * 520 * (1 - wq); break;            // órbita
       case 1: rx = mix(34, 10, ce); z = mix(-250, 140, dv); y = mix(120, 0, ce); break;                    // de baixo
       case 2: z = mix(-1500, 0, seg(t, tl.ini, 0.38, 'expo.out')) + 120 * dv; rz = d * 3 * (1 - ce); break; // aproximação brusca
-      case 3: rz = mix(d * -11, d * -4, ce); ry = mix(d * 18, 0, ce); z = mix(0, 220, dv); x = d * 420 * (1 - wq); break; // holandês
+      case 3: rz = mix(d * -9, d * -3, ce); ry = mix(d * 16, 0, ce); z = mix(-60, 150, dv); x = d * 420 * (1 - wq); break; // holandês
       case 4: rx = mix(-30, -8, ce); z = mix(150, 260, dv); y = mix(-140, 0, ce); break;                   // de cima
-      case 5: x = mix(d * -260, d * 120, dv) + d * 520 * (1 - wq); ry = mix(d * -14, d * 8, dv); z = 80 * dv; break; // lateral
+      case 5: x = mix(d * -110, d * 70, dv) + d * 520 * (1 - wq); ry = mix(d * -12, d * 6, dv); z = 60 * dv; break; // lateral
       default: z = lous ? 30 * pp : 0;
     }
     tl.el.style.transformOrigin = `${tl.cx || 540}px ${tl.cy || 960}px`;

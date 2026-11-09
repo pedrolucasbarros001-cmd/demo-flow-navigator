@@ -5,3 +5,4 @@ proj/frames/
 out/
 prev/
 out-render.log
+out/*.mp4
