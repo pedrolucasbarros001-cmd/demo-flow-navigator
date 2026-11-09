@@ -1,4 +1,4 @@
-// motor.js v4: a interface conta a história. Horizontal 1920 x 1200 (16:10, MacBook 16").
+// motor.js v5: texto e ilustrações do quadro, sem telas de app. Horizontal 1920 x 1200 (16:10, MacBook 16").
 // Tipografia: grotesca forte e fechada + palavras de destaque escritas à mão em vermelho (como iPad com Pencil)
 // + etiquetas em letra de máquina. Telas de app em cartões creme; ilustrações em traço de Pencil branco.
 // Um relógio só: render(t) desenha o quadro inteiro a partir de t. Sem Math.random, Date.now ou timers.
@@ -11,22 +11,23 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const vis = (t, a, d = 0.15) => (t >= a ? clamp((t - a) / d, 0, 1) : 0);
 const NS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
-const palco = $('palco'), lousa = $('lousa'), uiL = $('ui'), brilho = $('brilho'), rotulo = $('rotulo'), rotTx = rotulo.querySelector('.tx'), capitulo = $('capitulo');
+const palco = $('palco'), fundo = $('fundo'), eco = $('eco'), bokeh = $('bokeh'), lousa = $('lousa'), uiL = $('ui'), brilho = $('brilho'), rotulo = $('rotulo'), rotTx = rotulo.querySelector('.tx'), capitulo = $('capitulo');
 
 const CURTAS = new Set('E O A OS AS DE DO DA DOS DAS UM UMA QUE PRA PARA POR NO NA NOS NAS SE EM À AO TE EU ELE ELA É SÓ SEU SUA SEUS MAS COM SEM NÃO TU ISSO ESSE ESSA VOCÊ ONDE NÉ'.split(' '));
 const chave = s => s.toUpperCase().replace(/[,.:?!“”"]/g, '');
-const UI_CENAS = new Set(['canais', 'chat', 'confianca', 'pessoas', 'desculpas', 'busca', 'sins', 'perfil', 'conteudo', 'teia']);
+const UI_CENAS = new Set();
 // capítulos do texto: etiqueta no canto
 const CAPS = [[0, '01 / 03', 'o funil do orçamento'], [60, '02 / 03', 'tattoobrand'], [117, '03 / 03', 'profile funnel']];
-const RISCO = '<svg class="risco" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M2 13 C 20 7, 48 15, 70 10 S 92 7, 98 9" pathLength="100" stroke-dasharray="100 100" stroke-dashoffset="100" fill="none" stroke="#EB3B3B" stroke-width="4.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
+const RISCO = '<svg class="risco" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M2 13 C 20 7, 48 15, 70 10 S 92 7, 98 9" pathLength="100" stroke-dasharray="100 100" stroke-dashoffset="100" fill="none" stroke="#EB3B3B" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
 // ------------------------------------------------------------------ telas de texto
 let gw = 0;
 const telas = R.map((b, i) => {
-  const [, txt, op = {}] = b;
+  const [bg0, txt, op = {}] = b;
   const rng = S.rng(1000 + i);
   const modo = op.fx === 'final' || !op.fx ? 'texto' : UI_CENAS.has(op.fx) ? 'ui' : 'lousa';
-  const el = document.createElement('div'); el.className = 'tela abs';
+  const bg = bg0 === 'r' && !op.fx ? 'r' : 'k';
+  const el = document.createElement('div'); el.className = 'tela abs ' + bg;
   const bloco = document.createElement('div'); bloco.className = 'bloco'; el.appendChild(bloco);
   const linhas = [], palavras = [];
   txt.split('|').forEach((ln, li) => {
@@ -59,7 +60,7 @@ const telas = R.map((b, i) => {
   const forteTela = palavras.some(p => p.mao);
   const al = modo === 'ui' ? 'c' : modo === 'lousa' ? 'l' : op.al || (i % 3 === 2 ? 'c' : 'l');
   const cap = [...CAPS].reverse().find(c => i >= c[0]);
-  return { i, op, modo, el, bloco, linhas, palavras, al, rng, forteTela, cap, mov: Math.floor(rng() * 3), dir: rng() < 0.5 ? -1 : 1,
+  return { i, bg, op, modo, el, bloco, linhas, palavras, al, rng, forteTela, cap, mov: Math.floor(rng() * 3), dir: rng() < 0.5 ? -1 : 1,
     ini: i === 0 ? 0 : palavras[0].t - 0.08 };
 });
 const DUR = S.D;
@@ -73,18 +74,19 @@ function mede() {
     if (tl.op.oculto) return;
     tl.el.style.display = 'block'; tl.el.style.transform = 'none';
     const fin = tl.op.fx === 'final';
-    const larg = tl.modo === 'lousa' ? 700 : tl.modo === 'ui' ? 1440 : 1540;
+    const larg = tl.modo === 'lousa' ? 700 : tl.modo === 'ui' ? 1500 : 1540;
     tl.linhas.forEach(l => {
       l.el.style.fontSize = '100px';
       const nat = l.inner.getBoundingClientRect().width || 1;
-      const cap = fin ? 230 : tl.modo === 'ui' ? (l.mao ? 70 : 62) : tl.modo === 'lousa' ? (l.mao ? 100 : 90) : (l.mao ? 150 : 132);
+      const cap = fin ? 230 : tl.modo === 'ui' ? (l.mao ? 124 : 108) : tl.modo === 'lousa' ? (l.mao ? 100 : 90) : (l.mao ? 150 : 132);
       l.el.style.fontSize = Math.min(cap, 100 * larg / nat) + 'px';
       l.el.style.textAlign = tl.al === 'c' ? 'center' : 'left';
     });
     const r = tl.bloco.getBoundingClientRect();
     const x = tl.modo === 'lousa' ? 130 : tl.al === 'c' ? (W - r.width) / 2 : 190;
-    const y = tl.modo === 'ui' ? 200 - r.height / 2 : H * 0.52 - r.height / 2;
+    const y = tl.modo === 'ui' ? H * 0.5 - r.height / 2 : H * 0.52 - r.height / 2;
     tl.bloco.style.left = x + 'px'; tl.bloco.style.top = Math.max(140, y) + 'px';
+    if (tl.modo === 'ui') tl.el.classList.add('sobre');
     tl.bloco.style.textAlign = tl.al === 'c' ? 'center' : 'left';
     tl.cx = x + r.width / 2; tl.cy = y + r.height / 2;
     tl.el.style.display = 'none';
@@ -121,251 +123,6 @@ const curva = (x1, y1, x2, y2) => `M ${x1} ${y1} C ${x1 + (x2 - x1) * 0.45} ${y1
 function cena(nome, idx) { const bs = idx.map(i => telas[i]); return { nome, bs, ini: bs[0].ini, fim: bs[bs.length - 1].fim, w: (k, j) => bs[k].palavras[j < 0 ? bs[k].palavras.length + j : j].t }; }
 const ponto = raiz => div('', 'position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#EB3B3B;opacity:0;box-shadow:0 0 14px rgba(235,59,59,.8)', raiz);
 const FX = {};
-
-// ------------------------------------------------------------------ 1 · os canais viram etiquetas que terminam no orçamento
-FX.canais = (sc, raiz) => {
-  const sv = linhaSvg(raiz);
-  const itens = [['Indicação', 0, 0], ['Anúncio', 0, 1], ['Promoção', 0, 2], ['Site', 0, 3], ['Formulário', 1, 0], ['WhatsApp automático', 1, 1], ['Preço tabelado', 1, 3]];
-  const Y0 = 360, DY = 102, XP = 300, CY = 670;
-  const ps = itens.map(([s], i) => div('pill', `left:${XP}px;top:${Y0 + i * DY - 37}px`, raiz, `<i></i>${s}`));
-  const voce = div('pill esc', `left:1500px;top:${CY - 37}px`, raiz, `<i></i>Você`);
-  const orc = div('pill cer', `left:1010px;top:${CY - 44}px`, raiz, `<i></i>Orçamento`);
-  let A = null, B = null, link = null;
-  const dots = itens.map(() => ponto(raiz));
-  return t => {
-    if (!A) {
-      const ws = ps.map(p => p.offsetWidth || 200);
-      A = ps.map((p, i) => caminho(sv, curva(XP + ws[i], Y0 + i * DY, 1500, CY)));
-      B = ps.map((p, i) => caminho(sv, curva(XP + ws[i], Y0 + i * DY, 1010, CY)));
-      link = caminho(sv, `M ${1010 + (orc.offsetWidth || 300)} ${CY} L 1500 ${CY}`, '#8D8983', 3);
-    }
-    ps.forEach((p, i) => entra(p, t, sc.w(itens[i][1], itens[i][2]), { dx: -30, dy: 0 }));
-    const aA = sc.w(2, 0), aB = sc.w(5, 0), aO = sc.w(6, -1);
-    A.forEach((c, i) => { c.desenha(seg(t, aA + i * 0.08, 0.9, 'power2.inOut')); c.p.style.opacity = 1 - seg(t, aB, 0.5, 'power1.out'); });
-    entra(voce, t, sc.w(3, -1), { s: 0.9, dy: 0 });
-    B.forEach((c, i) => c.desenha(seg(t, aB + i * 0.07, 0.9, 'power2.inOut')));
-    entra(orc, t, aO, { s: 0.85, dy: 0, d: 0.6 });
-    link.desenha(seg(t, sc.w(7, 1), 0.6, 'power2.out'));
-    dots.forEach((d, i) => {
-      const fase = t < aB ? A[i] : B[i], ini = t < aB ? aA + 1.0 + i * 0.12 : aB + 1.0 + i * 0.12, per = 1.6;
-      if (t < ini) { d.style.opacity = 0; return; }
-      const q = ((t - ini) % per) / per, pt = fase.ponto(q);
-      d.style.left = pt.x + 'px'; d.style.top = pt.y + 'px'; d.style.opacity = Math.sin(q * Math.PI) * (t < aB ? 1 - seg(t, aB - 0.3, 0.3) : 1);
-    });
-    const pulso = sc.w(7, 1); orc.style.boxShadow = `0 16px ${40 + 40 * (t >= pulso ? 1 - seg(t, pulso, 0.8) : 0)}px rgba(235,59,59,.45)`;
-  };
-};
-
-// ------------------------------------------------------------------ 2 · conversa de WhatsApp
-function conversa(raiz, nome, msgs) {
-  const card = div('card', 'left:560px;top:300px;width:800px;height:850px;overflow:hidden', raiz);
-  const topo = div('', 'position:absolute;left:0;top:0;right:0;height:104px;background:#F7F5F1;border-bottom:1px solid #E2DED7;display:flex;align-items:center;gap:20px;padding:0 30px', card,
-    `<div class="ava" style="width:64px;height:64px">${AVA}</div><div><div style="font:600 30px Inter;color:#111">${nome}</div><div class="status" style="font:400 22px Inter;color:#6E7A6C">online</div></div>`);
-  const corpo = div('', 'position:absolute;left:0;top:104px;right:0;bottom:0;background:#EFEAE2', card);
-  const els = msgs.map(m => {
-    const e = div('msg' + (m.lado === 'out' ? ' out' : ''), '', corpo, m.html + (m.lado === 'out' ? '<small>19:30 ✓✓</small>' : '<small>19:30</small>'));
-    if (m.lado === 'out') e.style.right = '30px'; else e.style.left = '30px';
-    return e;
-  });
-  const dig = div('msg', 'left:30px;opacity:0;padding:22px 26px;display:flex;gap:10px', corpo, '<b style="width:14px;height:14px;border-radius:50%;background:#9A9792"></b><b style="width:14px;height:14px;border-radius:50%;background:#9A9792"></b><b style="width:14px;height:14px;border-radius:50%;background:#9A9792"></b>');
-  dig.pula = t => [...dig.children].forEach((b, k) => { b.style.transform = `translateY(${-9 * Math.max(0, Math.sin(t * 7 - k * 0.9))}px)`; });
-  let posto = false;
-  return { card, corpo, els, dig, status: topo.querySelector('.status'), arruma() {
-    if (posto) return; let y = 30; els.forEach(e => { e.style.top = y + 'px'; y += (e.offsetHeight || 80) + 16; }); dig.style.top = y + 'px'; posto = !!els[0].offsetHeight;
-  } };
-}
-FX.chat = (sc, raiz) => {
-  const c = conversa(raiz, 'Cliente', [
-    { lado: 'in', html: 'Oi! Quanto fica uma tattoo fina no antebraço?' },
-    { lado: 'out', html: 'Oi! Segue nossa tabela de valores:' },
-    { lado: 'out', html: '<b>Antebraço · traço fino</b><br>R$ 1.200 · sinal de 30%' },
-  ]);
-  const auto = div('tag', 'left:440px;opacity:0;background:#E2DED7;color:#55524E', c.corpo, 'Resposta automática');
-  const selo = div('pill cer', 'left:1090px;top:270px;opacity:0', raiz, '<i></i>Orçamento');
-  return t => {
-    c.arruma();
-    const q = [sc.w(0, 0), sc.w(2, 0), sc.w(2, 3)];
-    c.els.forEach((e, i) => entra(e, t, q[i], { dy: 16, d: 0.4 }));
-    const d0 = sc.w(3, 0); c.dig.style.opacity = t >= d0 ? 1 : 0; c.dig.pula(t);
-    auto.style.top = (parseFloat(c.els[1].style.top || 0) - 46) + 'px'; entra(auto, t, sc.w(4, 1), { dy: 8 });
-    c.els[2].style.outline = t >= sc.w(5, 1) ? `3px solid rgba(235,59,59,${seg(t, sc.w(5, 1), 0.4)})` : 'none';
-    entra(selo, t, sc.w(7, 2), { s: 1.35, dy: 0, d: 0.45, extra: ' rotate(-5deg)' });
-  };
-};
-FX.desculpas = (sc, raiz) => {
-  const c = conversa(raiz, 'Cliente', [
-    { lado: 'out', html: 'Consigo te encaixar dia 12. Fechamos?' },
-    { lado: 'in', html: 'Tô me planejando ainda…' },
-    { lado: 'in', html: 'Vou ver o cartão e te falo' },
-    { lado: 'in', html: 'Vou pensar, tá?' },
-    { lado: 'out', html: 'Oi! Conseguiu ver?' },
-  ]);
-  return t => {
-    c.arruma();
-    const q = [sc.ini + 0.15, sc.w(1, 0), sc.w(2, 0), sc.w(3, 0), sc.w(4, 0)];
-    c.els.forEach((e, i) => entra(e, t, q[i], { dy: 16, d: 0.4 }));
-    const so = sc.w(4, 1);
-    c.status.textContent = t >= so ? 'visto por último às 19:42' : 'online';
-    c.status.style.color = t >= so ? '#9A9792' : '#6E7A6C';
-    c.dig.style.top = c.els[4].style.top; c.dig.style.opacity = t >= q[3] + 0.6 && t < q[4] - 0.1 ? 1 : 0; c.dig.pula(t);
-  };
-};
-
-// ------------------------------------------------------------------ 3 · busca por outros tatuadores
-FX.busca = (sc, raiz) => {
-  const barra = div('card', 'left:460px;top:350px;width:1000px;height:96px;border-radius:48px;display:flex;align-items:center;gap:22px;padding:0 36px', raiz,
-    '<svg width="34" height="34" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7" stroke="#8E8C89" stroke-width="2.4" fill="none"/><path d="M15 15l6 6" stroke="#8E8C89" stroke-width="2.4"/></svg><span class="q" style="font:400 34px Inter;color:#111"></span><span class="cur" style="width:3px;height:40px;background:#EB3B3B"></span>');
-  const q = barra.querySelector('.q'), cur = barra.querySelector('.cur'), frase = 'tatuador perto de mim';
-  const nomes = [['Black Rose Tattoo', '4,9'], ['Atelier Traço Fino', '4,8'], ['Studio 13 Ink', '4,9']];
-  const res = nomes.map(([n, nota], i) => div('card', `left:460px;top:${490 + i * 190}px;width:1000px;height:160px;border-radius:26px;display:flex;align-items:center;gap:28px;padding:0 34px`, raiz,
-    `<div class="ava" style="width:96px;height:96px">${AVA}</div><div style="flex:1"><div style="font:600 32px Inter;color:#111">${n}</div><div style="font:400 24px Inter;color:#8E8C89;margin-top:8px">★ ${nota} · tatuagem · agenda aberta</div></div><div class="pill" style="position:static;height:58px;font-size:24px;box-shadow:none;background:#E2DED7">Ver perfil</div>`));
-  return t => {
-    entra(barra, t, sc.ini, { dy: 0, s: 0.96 });
-    const a = sc.w(0, 1), b = sc.w(0, -1) + 0.2, n = Math.floor(frase.length * seg(t, a, b - a, 'none'));
-    q.textContent = frase.slice(0, n); cur.style.opacity = Math.floor(t * 2.2) % 2 ? 0.2 : 1;
-    res.forEach((r, i) => entra(r, t, sc.w(0, 4) + i * 0.12, { dy: 30 }));
-  };
-};
-
-// ------------------------------------------------------------------ 4 · a confiança que não sobe
-FX.confianca = (sc, raiz) => {
-  const pill = div('card esc', 'left:560px;top:400px;width:800px;height:180px;border-radius:90px;display:flex;align-items:center;padding-left:200px', raiz,
-    `<div><div class="pc" style="font:700 72px 'Inter Tight';color:#EFECE5;letter-spacing:-0.03em">0%</div><div style="font:500 20px 'JetBrains Mono';letter-spacing:.16em;text-transform:uppercase;color:#8D8983;margin-top:4px">confiança do cliente</div></div>`);
-  const a = anel(pill, 34, 22, 62, '#EB3B3B', '#262626');
-  const pc = pill.querySelector('.pc');
-  const chips = [['Pagar sinal'], ['Marcar data']].map(([s], i) => div('pill esc', `left:${640 + i * 340}px;top:660px;color:#8D8983;box-shadow:none`, raiz, `${CADEADO}${s}`));
-  const marcos = [[1, 2, 8], [4, 2, 22], [5, 0, 37], [6, 0, 49], [7, 2, 58]];
-  return t => {
-    entra(pill, t, sc.ini + 0.1, { dy: 30, s: 0.96 });
-    let v = 0; marcos.forEach(([k, j, alvo], i) => { const ant = i ? marcos[i - 1][2] : 0, s = seg(t, sc.w(k, j), 0.9, 'power2.inOut'); if (t >= sc.w(k, j)) v = mix(ant, alvo, s); });
-    const fim = sc.w(8, -1), trava = t >= fim ? Math.sin((t - fim) * 18) * 1.4 * (1 - seg(t, fim, 1.2)) : 0;
-    a.set((v + trava) / 100); pc.textContent = Math.round(v) + '%';
-    chips.forEach((c, i) => entra(c, t, sc.w(i + 2, 3), { dy: 18 }));
-  };
-};
-
-// ------------------------------------------------------------------ 5 · de cada 20, 7 fecham
-FX.pessoas = (sc, raiz) => {
-  const card = div('card', 'left:460px;top:310px;width:1000px;height:740px', raiz);
-  const fecham = new Set([1, 4, 7, 10, 13, 16, 18]);
-  const avs = []; for (let i = 0; i < 20; i++) {
-    const x = 110 + (i % 5) * 180, y = 60 + Math.floor(i / 5) * 150;
-    const a = div('ava', `position:absolute;left:${x}px;top:${y}px;width:110px;height:110px`, card, AVA);
-    const ck = div('', `position:absolute;left:${x + 78}px;top:${y + 78}px;width:38px;height:38px;border-radius:50%;background:#EB3B3B;border:4px solid #EFECE5;opacity:0;display:flex;align-items:center;justify-content:center`, card, CHECK);
-    avs.push({ a, ck, f: fecham.has(i) });
-  }
-  const cont = div('pill esc', 'left:760px;top:990px;height:96px;font-size:34px;padding:0 40px 0 26px', raiz, '<i></i>7 de 20 fecham');
-  return t => {
-    entra(card, t, sc.ini + 0.05, { dy: 30, s: 0.97 });
-    const a20 = sc.w(1, 2), a7 = sc.w(3, 1), a13 = sc.w(4, 2), aNao = sc.w(5, -1);
-    avs.forEach((o, i) => {
-      entra(o.a, t, a20 + i * 0.03, { dy: 0, s: 0.7, d: 0.4 });
-      if (o.f) { const q = seg(t, a7 + (i % 3) * 0.05, 0.35, 'back.out(2)'); o.ck.style.opacity = vis(t, a7 + (i % 3) * 0.05, 0.1); o.ck.style.transform = `scale(${mix(0.4, 1, q)})`; o.a.style.background = t >= a7 ? '#F6D0D0' : ''; o.a.querySelector('svg').style.fill = t >= a7 ? '#EB3B3B' : ''; }
-      else { const op = (t >= a13 ? 0.55 : 1) * (1 - 0.5 * seg(t, aNao, 0.7)); o.a.style.opacity = Math.min(parseFloat(o.a.style.opacity || 1), op); }
-    });
-    entra(cont, t, a7 + 0.3, { dy: 20 });
-  };
-};
-
-// ------------------------------------------------------------------ 6 · cinco vezes sim
-FX.sins = (sc, raiz) => {
-  const card = div('card', 'left:510px;top:200px;width:900px;height:820px', raiz);
-  const objs = ['anúncio', 'orçamento', 'preço', 'sinal', 'marcação'];
-  const rows = objs.map((o, k) => {
-    const r = div('', `position:absolute;left:0;right:0;top:${30 + k * 155}px;height:155px;display:flex;align-items:center;gap:34px;padding:0 60px;${k < 4 ? 'border-bottom:1px solid #DDD9D2' : ''}`, card,
-      `<div class="ck" style="width:64px;height:64px;border-radius:50%;border:3px solid #C9C5BE;display:flex;align-items:center;justify-content:center;flex:none">${CHECK.replace('18', '30').replace('18', '30')}</div><div style="font:600 48px 'Inter Tight';letter-spacing:-0.03em;color:#141414">Sim <span style="color:#8D8983">${k === 4 ? 'para a' : 'para o'}</span> <b class="ob" style="font:400 62px 'Indie Flower';letter-spacing:0;color:#C9C5BE">${o}</b></div>`);
-    return { r, ck: r.querySelector('.ck'), ob: r.querySelector('.ob') };
-  });
-  return t => {
-    entra(card, t, sc.ini, { dy: 30, s: 0.97 });
-    rows.forEach((o, k) => {
-      entra(o.r, t, sc.w(k, 0), { dy: 14, d: 0.4 });
-      const aO = sc.w(k, 3), q = seg(t, aO, 0.3, 'back.out(2)');
-      o.ck.style.background = t >= aO ? '#EB3B3B' : 'transparent'; o.ck.style.borderColor = t >= aO ? '#EB3B3B' : '#C9C5BE'; o.ck.style.transform = `scale(${t >= aO ? mix(0.7, 1, q) : 1})`;
-      o.ob.style.color = t >= aO ? '#EB3B3B' : '#C9C5BE';
-    });
-  };
-};
-
-// ------------------------------------------------------------------ 7 · o perfil projetado para vender
-FX.perfil = (sc, raiz) => {
-  const card = div('card esc', 'left:610px;top:300px;width:700px;height:860px;overflow:hidden', raiz);
-  const ava = div('', 'position:absolute;left:50px;top:46px;width:150px;height:150px;border-radius:50%;padding:6px;background:conic-gradient(#EB3B3B,#F07A5A,#8A1414,#EB3B3B)', card,
-    `<div class="ava" style="width:100%;height:100%;border:5px solid #161616;background:#2A2A2A">${AVA.replace('<svg', '<svg style="fill:#5E5B57"')}</div>`);
-  const stats = div('', 'position:absolute;left:240px;top:70px;right:40px;display:flex;justify-content:space-between;text-align:center;color:#EFECE5', card,
-    ['248|posts', '12,4 mil|seguidores', '312|seguindo'].map(s => { const [a, b] = s.split('|'); return `<div><div style="font:700 34px 'Inter Tight'">${a}</div><div style="font:400 22px Inter;color:#8D8983">${b}</div></div>`; }).join(''));
-  const nome = div('', 'position:absolute;left:50px;top:220px;font:600 30px Inter;color:#EFECE5', card, 'seu.estudio');
-  const bio = div('', 'position:absolute;left:50px;top:268px;width:460px', card, '<div class="barra" style="width:92%"></div><div class="barra" style="width:70%;margin-top:12px"></div><div style="font:400 30px \'Indie Flower\';color:#EB3B3B;margin-top:10px">link na bio</div>');
-  const bts = div('', 'position:absolute;left:50px;right:50px;top:385px;display:flex;gap:16px', card,
-    '<div style="flex:1;height:64px;border-radius:14px;background:#2A2A2A;color:#EFECE5;font:600 24px Inter;display:flex;align-items:center;justify-content:center">Seguir</div><div class="b2" style="flex:1;height:64px;border-radius:14px;background:#2A2A2A;color:#EFECE5;font:600 24px Inter;display:flex;align-items:center;justify-content:center">Agendar</div>');
-  const agendar = bts.querySelector('.b2');
-  const dest = div('', 'position:absolute;left:50px;right:50px;top:480px;display:flex;justify-content:space-between', card,
-    ['Portfólio', 'Preços', 'Agenda', 'Cuidados'].map(s => `<div style="text-align:center"><div style="width:96px;height:96px;border-radius:50%;border:2px solid #3A3A3A;background:#1E1E1E"></div><div style="font:400 20px Inter;color:#B7B3AD;margin-top:8px">${s}</div></div>`).join(''));
-  const grade = div('', 'position:absolute;left:0;right:0;top:640px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px', card,
-    Array.from({ length: 6 }, (_, i) => `<div style="height:232px;background:linear-gradient(${135 + i * 20}deg,#2A2A2A,#1A1A1A 60%,${i % 3 === 1 ? '#3A1010' : '#222'})"></div>`).join(''));
-  const toast = div('', 'position:absolute;left:640px;top:220px;width:640px;height:110px;border-radius:24px;background:#EFECE5;display:flex;align-items:center;gap:22px;padding:0 28px;box-shadow:0 30px 70px rgba(0,0,0,.6);opacity:0', raiz,
-    `<div style="width:60px;height:60px;border-radius:16px;background:#EB3B3B;display:flex;align-items:center;justify-content:center">${CHECK.replace('18', '30').replace('18', '30')}</div><div><div style="font:600 28px Inter;color:#111">Novo agendamento</div><div style="font:400 22px Inter;color:#6B6863">Sinal pago · 14 de junho</div></div>`);
-  const partes = [ava, stats, nome, bio, bts, dest, grade];
-  return t => {
-    entra(card, t, sc.ini, { dy: 40, s: 0.96, d: 0.7 });
-    partes.forEach((p, i) => entra(p, t, sc.ini + 0.2 + i * 0.08, { dy: 14 }));
-    const aC = sc.w(3, -1), q = seg(t, aC, 0.4, 'back.out(2)');
-    agendar.style.background = t >= aC ? '#EB3B3B' : '#2A2A2A'; agendar.style.transform = `scale(${t >= aC ? mix(1.08, 1, q) : 1})`;
-    entra(toast, t, sc.w(4, -1), { dy: -40, d: 0.55 });
-  };
-};
-
-// ------------------------------------------------------------------ 8 · post de atenção e StoryAds
-FX.conteudo = (sc, raiz) => {
-  const post = div('card esc', 'left:520px;top:320px;width:560px;height:700px;overflow:hidden', raiz,
-    `<div style="height:96px;display:flex;align-items:center;gap:16px;padding:0 26px"><div class="ava" style="width:56px;height:56px;background:#2A2A2A">${AVA}</div><div style="font:600 24px Inter;color:#EFECE5">seu.estudio</div></div>
-     <div style="height:500px;background:radial-gradient(circle at 30% 30%,#3A1010,#141414 70%);position:relative"><div style="position:absolute;left:44px;bottom:40px;right:44px;font:700 52px/1.0 'Inter Tight';letter-spacing:-0.04em;color:#EFECE5">Post de <span style="font:400 66px 'Indie Flower';letter-spacing:0;color:#EB3B3B">atenção</span></div></div>
-     <div style="padding:22px 26px"><div class="barra" style="width:80%"></div><div class="barra" style="width:55%;margin-top:12px"></div></div>`);
-  const story = div('card esc', 'left:1140px;top:270px;width:440px;height:780px;overflow:hidden;background:linear-gradient(170deg,#5A1010,#141414 70%)', raiz,
-    `<div style="margin:22px 22px 0;height:6px;border-radius:3px;background:rgba(255,255,255,.25)"><div class="prog" style="height:100%;width:0;border-radius:3px;background:#fff"></div></div>
-     <div style="display:flex;align-items:center;gap:12px;padding:20px 22px"><div class="ava" style="width:46px;height:46px;background:#2A2A2A">${AVA}</div><div><div style="font:600 21px Inter;color:#fff">seu.estudio</div><div style="font:400 17px Inter;color:rgba(255,255,255,.7)">Patrocinado</div></div></div>
-     <div style="position:absolute;left:30px;right:30px;top:300px;font:700 58px/1 'Inter Tight';letter-spacing:-0.04em;color:#EFECE5">Story<span style="font:400 72px 'Indie Flower';letter-spacing:0;color:#EB3B3B">Ads</span></div>
-     <div style="position:absolute;left:30px;right:30px;bottom:40px;height:72px;border-radius:36px;background:#EFECE5;color:#111;font:600 26px Inter;display:flex;align-items:center;justify-content:center">Saiba mais</div>`);
-  const prog = story.querySelector('.prog');
-  const qual = div('pill cer', 'left:740px;top:1070px;height:76px;font-size:28px', raiz, '<i></i>Público qualificado');
-  const vir = div('pill esc', 'left:1110px;top:1070px;height:76px;font-size:28px;color:#8D8983;box-shadow:none', raiz, '<i></i>Viralizar<b class="risca" style="position:absolute;left:20px;right:20px;top:36px;height:3px;background:#EB3B3B;transform-origin:0 50%;transform:scaleX(0)"></b>');
-  const risca = vir.querySelector('.risca');
-  return t => {
-    entra(post, t, sc.w(2, 0), { dy: 40, s: 0.96, d: 0.6 });
-    entra(story, t, sc.w(2, 4), { dy: 40, s: 0.96, d: 0.6 });
-    prog.style.width = (100 * seg(t, sc.w(2, 4), 5, 'none')) + '%';
-    entra(qual, t, sc.w(3, -1), { dy: 18 });
-    entra(vir, t, sc.w(4, -1), { dy: 18 });
-    risca.style.transform = `scaleX(${seg(t, sc.w(5, 0), 0.4, 'power2.out')})`;
-  };
-};
-
-// ------------------------------------------------------------------ 9 · a teia de conteúdo e ofertas
-FX.teia = (sc, raiz) => {
-  const sv = linhaSvg(raiz);
-  const N = { post: [520, 400, 'Post'], cont: [960, 400, 'Conteúdo'], dm: [1400, 400, 'DM'], ofe: [1400, 820, 'Oferta'], story: [520, 650, 'Story'], dest: [520, 860, 'Destaque'], link: [520, 1070, 'Link na bio'] };
-  const nos = {}; for (const k in N) nos[k] = div(k === 'ofe' ? 'pill cer' : 'pill', 'left:0;top:0', raiz, `<i></i>${N[k][2]}`);
-  const ar = [['post', 'cont'], ['cont', 'dm'], ['dm', 'ofe'], ['story', 'ofe'], ['dest', 'ofe'], ['link', 'ofe']];
-  let cs = null;
-  const dots = ar.map(() => ponto(raiz));
-  const quando = { post: [0, 1], cont: [0, 5], dm: [1, 5], ofe: [3, 3], story: [5, 3], dest: [7, 3], link: [9, 3] };
-  const qa = [[0, 2], [1, 2], [2, 2], [6, 2], [8, 1], [10, 1]];
-  return t => {
-    if (!cs) {
-      for (const k in nos) { const e = nos[k], w = e.offsetWidth || 200, h = e.offsetHeight || 74; e.style.left = (N[k][0] - w / 2) + 'px'; e.style.top = (N[k][1] - h / 2) + 'px'; e.style.transformOrigin = '50% 50%'; }
-      cs = ar.map(([a, b]) => { const [x1, y1] = N[a], [x2, y2] = N[b]; return caminho(sv, b === 'ofe' && a !== 'dm' ? curva(x1, y1, x2, y2) : `M ${x1} ${y1} L ${x2} ${y2}`, '#5E5B57', 3); });
-    }
-    const fim = sc.w(10, -1);
-    for (const k in nos) { const a = sc.w(...quando[k]); entra(nos[k], t, a, { dy: 0, s: k === 'ofe' ? 0.8 : 0.9, d: 0.45 }); }
-    nos.ofe.style.boxShadow = `0 16px ${40 + 50 * (t >= fim ? 1 - seg(t, fim, 0.9) : 0)}px rgba(235,59,59,.5)`;
-    cs.forEach((c, i) => {
-      const a = sc.w(...qa[i]); c.desenha(seg(t, a, 0.6, 'power2.inOut'));
-      const s1 = seg(t, a + 0.6, 0.7, 'power1.inOut'), s2 = seg(t, fim, 0.7, 'power1.inOut'), s = t >= fim ? s2 : s1;
-      const pt = c.ponto(s); dots[i].style.left = pt.x + 'px'; dots[i].style.top = pt.y + 'px';
-      dots[i].style.opacity = (t >= a + 0.6 && t < a + 1.3) || (t >= fim && t < fim + 0.7) ? 1 : 0;
-    });
-  };
-};
 
 // ------------------------------------------------------------------ lousa: traço de Pencil (liso, grosso, branco) + a gente azul do seu quadro
 const rc = rough.svg(lousa);
@@ -509,6 +266,107 @@ FX.zona2 = sc => {
   };
 };
 
+
+// cada canal é um funil
+FX.funis = sc => {
+  const g = grupo(), itens = [['indicação', 0, 0], ['anúncio', 0, 1], ['promoção', 0, 2], ['site', 0, 3], ['formulário', 1, 0], ['whatsapp automático', 1, 1], ['preço tabelado', 1, 3]];
+  const pos = [[1010, 220], [1240, 220], [1470, 220], [1700, 220], [1070, 680], [1370, 680], [1690, 680]];
+  const fs = itens.map((it, i) => {
+    const [x, y] = pos[i], gg = grupo(g), f = funil(gg, x, y, 170, 210);
+    const gente = multidao(8, () => true, [x - 66, y - 80, x + 66, y - 4], 22, 50 + i).map(p => ({ p, b: boneco(gg, p.x, p.y, 28, AZUL) }));
+    const sai = boneco(gg, x, y + 266, 32, VERM), lb = rotuloMao(gg, it[0], x, y + 328, it[0].length > 14 ? 34 : 40);
+    return { f, gente, sai, lb };
+  });
+  return t => fs.forEach((o, i) => {
+    const a = sc.w(itens[i][1], itens[i][2]);
+    o.f.tr.desenha(seg(t, a - 0.05, 0.6, 'power2.out'));
+    o.gente.forEach(({ p, b }) => { const aa = a + 0.2 + p.d * 0.4; b.pos(p.x, mix(p.y - 40, p.y, pousa(t, aa, 0.4)), 1, vis(t, aa, 0.2)); });
+    o.lb.setAttribute('opacity', vis(t, a, 0.25));
+    const ab = a + 0.8; o.sai.pos(o.sai.x, mix(o.sai.y - 26, o.sai.y, pousa(t, ab, 0.4)), 1, vis(t, ab, 0.2));
+  });
+};
+// todos terminam no orçamento
+FX.orcamento = sc => {
+  const g = grupo(), xs = [1010, 1240, 1470, 1700];
+  const fs = xs.map((x, i) => ({ f: funil(g, x, 230, 190, 300), gente: multidao(9, () => true, [x - 74, 130, x + 74, 226], 22, 80 + i).map(p => ({ p, b: boneco(g, p.x, p.y, 28, AZUL) })) }));
+  const cx = 980, cy = 760, cw = 760, ch = 220, caixa = grupo(g);
+  const borda = traco(add(caixa, rc.rectangle(cx, cy, cw, ch, O({ strokeWidth: 6 }))));
+  const tinta = traco(add(caixa, rc.rectangle(cx + 10, cy + 10, cw - 20, ch - 20, O({ stroke: 'none', fill: VERM, fillStyle: 'hachure', hachureGap: 14, fillWeight: 4, hachureAngle: -35 }))));
+  const lb = texto(caixa, 'orçamento', { x: cx + cw / 2, y: cy + ch / 2 + 34, class: 'mao', 'font-size': 120, fill: CREME, stroke: '#0B0B0B', 'stroke-width': 10, 'paint-order': 'stroke' });
+  const caem = []; xs.forEach((x, i) => { for (let k = 0; k < 2; k++) caem.push({ b: boneco(g, x, 600, 34, VERM), x, alvo: [cx + 90 + (i * 2 + k) * 82, cy + ch - 26] }); });
+  return t => {
+    fs.forEach((o, i) => { o.f.tr.desenha(seg(t, sc.ini + i * 0.15, 0.9, 'power2.out')); o.gente.forEach(({ p, b }) => { const a = sc.ini + 0.4 + i * 0.1 + p.d * 0.5; b.pos(p.x, mix(p.y - 40, p.y, pousa(t, a, 0.4)), 1, vis(t, a, 0.2)); }); });
+    borda.desenha(seg(t, sc.w(0, -1), 0.8, 'power2.inOut'));
+    const desce = sc.w(1, -1);
+    caem.forEach((c, j) => { const a = sc.w(0, 2) + j * 0.06, vai = seg(t, desce + j * 0.05, 0.8, 'power2.inOut'); c.b.pos(mix(c.x, c.alvo[0], vai), mix(mix(560, 600, pousa(t, a, 0.4)), c.alvo[1], vai), 1, vis(t, a, 0.2)); });
+    const ao = sc.w(2, -1); tinta.desenha(seg(t, ao - 0.05, 0.5, 'power2.out')); lb.setAttribute('opacity', vis(t, ao, 0.3));
+  };
+};
+// de cada 20, 7 fecham
+FX.pessoas = sc => {
+  const g = grupo(), fig = [];
+  for (let i = 0; i < 20; i++) fig.push(boneco(g, 1370 + ((i % 5) - 2) * 150, 330 + Math.floor(i / 5) * 230, 190, AZUL));
+  const fecham = new Set([1, 4, 7, 10, 13, 16, 18]);
+  return t => {
+    const a20 = sc.w(1, 2), a7 = sc.w(3, 1), a13 = sc.w(4, 2), aNao = sc.w(5, -1);
+    fig.forEach((b, i) => {
+      const a = a20 + i * 0.035; let cor = AZUL, op = vis(t, a, 0.25);
+      if (fecham.has(i) && t >= a7 + (i % 3) * 0.05) cor = VERM;
+      if (!fecham.has(i)) op *= 1 - 0.75 * seg(t, aNao, 0.7, 'power2.out');
+      b.pos(b.x, mix(b.y + 20, b.y, pousa(t, a, 0.5)), 1, op, cor);
+    });
+  };
+};
+// cinco vezes sim
+FX.sins = sc => {
+  const g = grupo(), objs = ['anúncio', 'orçamento', 'preço', 'sinal', 'marcação'];
+  const ls = objs.map((s, k) => {
+    const y = 210 + k * 195, lg = grupo(g);
+    const cx = traco(add(lg, rc.rectangle(560, y - 52, 104, 104, O({ strokeWidth: 6 }))));
+    const ck = traco(add(lg, rc.linearPath([[580, y - 2], [604, y + 26], [652, y - 42]], O({ stroke: VERM, strokeWidth: 12 }))));
+    const sim = texto(lg, 'Sim', { x: 712, y: y + 36, 'font-size': 100, fill: CREME, 'text-anchor': 'start', style: "font-family:'Inter Tight';font-weight:800;letter-spacing:-4px" });
+    const pa = texto(lg, k === 4 ? 'para a' : 'para o', { x: 925, y: y + 34, 'font-size': 56, fill: CINZA, 'text-anchor': 'start', style: "font-family:'Inter Tight';font-weight:600;letter-spacing:-2px" });
+    const ob = texto(lg, s, { x: 1100, y: y + 36, class: 'mao', 'font-size': 120, fill: VERM, 'text-anchor': 'start' });
+    return { cx, ck, sim, pa, ob };
+  });
+  return t => ls.forEach((o, k) => {
+    const a = sc.w(k, 0), aP = sc.w(k, 1), aO = sc.w(k, 3);
+    o.cx.desenha(seg(t, a - 0.1, 0.4, 'power2.out'));
+    o.sim.setAttribute('opacity', vis(t, a, 0.2)); o.pa.setAttribute('opacity', vis(t, aP, 0.2));
+    o.ob.setAttribute('opacity', vis(t, aO, 0.2)); o.ob.setAttribute('transform', `translate(${(1 - pousa(t, aO, 0.4)) * 24},0)`);
+    o.ck.desenha(seg(t, aO, 0.35, 'power2.out'));
+  });
+};
+// a teia de conteúdo e ofertas
+FX.teia = sc => {
+  const g = grupo(), ga = grupo(g), gn = grupo(g);
+  const N = { post: [1010, 240, 'post'], cont: [1600, 240, 'conteúdo'], dm: [1600, 560, 'DM'], ofe: [1310, 830, 'oferta'], story: [990, 600, 'story'], dest: [1000, 1080, 'destaque'], link: [1640, 1080, 'link na bio'] };
+  const nos = {};
+  for (const k in N) {
+    const [x, y, s] = N[k], ng = grupo(gn), of = k === 'ofe', w = of ? 360 : Math.max(220, s.length * 26 + 90), h = of ? 160 : 110;
+    const tr = traco(add(ng, rc.ellipse(x, y, w, h, O(of ? { fill: VERM, fillStyle: 'hachure', hachureGap: 11, fillWeight: 3.5, strokeWidth: 6 } : { strokeWidth: 5 }))));
+    const lb = texto(ng, s, { x, y: y + (of ? 30 : 20), class: 'mao', 'font-size': of ? 92 : 60, fill: CREME, stroke: of ? '#0B0B0B' : 'none', 'stroke-width': of ? 8 : 0, 'paint-order': 'stroke' });
+    nos[k] = { tr, lb };
+  }
+  const ar = [['post', 'cont'], ['cont', 'dm'], ['dm', 'ofe'], ['story', 'ofe'], ['dest', 'ofe'], ['link', 'ofe']].map(([a, b]) => {
+    const [x1, y1] = N[a], [x2, y2] = N[b], d = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / d, uy = (y2 - y1) / d, c1 = 130, c2 = b === 'ofe' ? 150 : 110;
+    const p1 = [x1 + ux * c1, y1 + uy * c1 * 0.6], p2 = [x2 - ux * c2, y2 - uy * c2 * 0.62];
+    return { s: seta(ga, p1[0], p1[1], p2[0], p2[1], 5), p1, p2, dot: el('circle', { r: 10, fill: VERM }, ga) };
+  });
+  const quando = { post: [0, 1], cont: [0, 5], dm: [1, 5], ofe: [3, 3], story: [5, 3], dest: [7, 3], link: [9, 3] };
+  const qa = [[0, 2], [1, 2], [2, 2], [6, 2], [8, 1], [10, 1]];
+  return t => {
+    const fim = sc.w(10, -1);
+    for (const k in nos) { const a = sc.w(...quando[k]); nos[k].tr.desenha(seg(t, a - 0.05, 0.45, 'power2.out')); nos[k].lb.setAttribute('opacity', vis(t, a, 0.25)); }
+    ar.forEach((e, i) => {
+      const a = sc.w(...qa[i]); e.s.desenha(seg(t, a, 0.5, 'power2.out'));
+      const s1 = seg(t, a + 0.5, 0.6, 'power1.inOut'), s2 = seg(t, fim, 0.6, 'power1.inOut'), s = t >= fim ? s2 : s1;
+      e.dot.setAttribute('cx', mix(e.p1[0], e.p2[0], s)); e.dot.setAttribute('cy', mix(e.p1[1], e.p2[1], s));
+      e.dot.setAttribute('opacity', (t >= a + 0.5 && t < a + 1.1) || (t >= fim && t < fim + 0.6) ? 1 : 0);
+    });
+  };
+};
+
 // ------------------------------------------------------------------ monta as cenas
 const cenas = []; telas.forEach((tl, i) => {
   const nome = tl.op.fx; if (!nome || nome === 'final') return;
@@ -524,6 +382,14 @@ cenas.forEach(c => {
 // início de cada capítulo (para a etiqueta digitar)
 const iniCap = CAPS.map(c => telas[c[0]].ini);
 
+// ------------------------------------------------------------------ partículas desfocadas em camadas (profundidade)
+const BK = (() => { const r = S.rng(77); return Array.from({ length: 24 }, () => {
+  const z = r(), sz = 6 + z * 46, e = document.createElement('i');
+  e.style.width = e.style.height = sz + 'px'; e.style.filter = `blur(${2 + z * 14}px)`;
+  e.style.background = r() < 0.7 ? `rgba(235,59,59,${0.25 + 0.3 * (1 - z)})` : `rgba(239,236,229,${0.12 + 0.2 * (1 - z)})`;
+  bokeh.appendChild(e); return { e, x: r() * 2100 - 90, y: r() * 1300 - 50, z, v: 2 + z * 8, f: r() * 6.28 };
+}); })();
+
 // ------------------------------------------------------------------ quadro
 let atual = null;
 function acha(t) { let lo = 0, hi = telas.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (telas[m].ini <= t) lo = m; else hi = m - 1; } return telas[lo]; }
@@ -538,6 +404,14 @@ function render(t) {
     atual = tl;
   }
   if (tl.cena) tl.cena.desenha(t);
+  fundo.className = 'abs cheio ' + tl.bg;
+  // partículas: sobem devagar, as de perto correm mais (paralaxe)
+  BK.forEach(p => { const y = ((p.y - p.v * t) % 1300 + 1300) % 1300 - 50, x = p.x + Math.sin(t * 0.15 + p.f) * 10 * p.z; p.e.style.transform = `translate(${x}px,${y}px)`; });
+  bokeh.style.opacity = tl.bg === 'r' ? 0.35 : tl.cena ? 0.45 : 0.9;
+  // eco: a palavra escrita à mão, enorme e desfocada lá no fundo
+  const pm = tl.modo === 'texto' && tl.palavras.find(p => p.mao);
+  if (pm && t >= pm.t) { eco.textContent = pm.el.textContent; eco.style.top = ((tl.cy || 600) - 330) + 'px'; eco.style.opacity = seg(t, pm.t, 0.8, 'power2.out') * (tl.bg === 'r' ? 0.6 : 1); eco.style.color = tl.bg === 'r' ? 'rgba(255,230,220,.10)' : ''; eco.style.transform = `translateX(${tl.dir * mix(40, -40, seg(t, pm.t, 4, 'none'))}px) scale(${mix(1.1, 1.0, seg(t, pm.t, 1.2, 'power3.out'))})`; }
+  else eco.style.opacity = 0;
   const dur = Math.max(0.6, tl.fim - tl.ini), dv = seg(t, tl.ini, dur, 'sine.inOut'), ce = seg(t, tl.ini, Math.min(dur, 1.6), 'power3.out');
 
   // etiqueta do capítulo, digitada no começo de cada parte
@@ -554,22 +428,24 @@ function render(t) {
     if (tl.cena.tipo === 'ui') {
       const r = tl.cena.raiz; r.style.transformOrigin = '960px 1185px';
       const ld = seg(t, sc.ini, sc.fim - sc.ini, 'none');
-      r.style.transform = `rotateX(${mix(10, 1, q)}deg) rotateY(${mix(-4, 4, ld)}deg) scale(${0.93 * mix(0.95, 1, q) * (1 + 0.1 * ld)}) translate(${mix(-60, 60, ld)}px,${mix(30, -10, ld)}px)`;
-      r.style.filter = bl > 0.02 ? `blur(${bl * 10}px)` : 'none';
+      r.style.transform = `rotateX(${mix(10, 1, q)}deg) rotateY(${mix(-4, 4, ld)}deg) scale(${0.9 * mix(0.95, 1, q) * (1 + 0.06 * ld)}) translate(${mix(-60, 60, ld)}px,${mix(30, -10, ld)}px)`;
+      r.style.filter = `blur(${1.8 + bl * 10}px) brightness(.78)`;
     } else {
       lousa.style.transformOrigin = '1370px 620px';
       const ld2 = seg(t, sc.ini, sc.fim - sc.ini, 'none');
-      lousa.style.transform = `perspective(2600px) rotateX(${mix(8, 1, q)}deg) rotateY(${mix(-9, 6, ld2)}deg) scale(${mix(0.95, 1.08, ld2)}) translateX(${mix(30, -30, ld2)}px)`;
+      lousa.style.transform = `perspective(2600px) rotateX(${mix(8, 1.5, q)}deg) rotateY(${mix(-7, 3, d2)}deg) scale(${mix(0.96, 1.03, d2)})`;
     }
   }
   if (!tl.op.oculto) {
     let ry = 0, x = 0;
-    const lin = seg(t, tl.ini, dur, 'none'), s = 1 + (tl.modo === 'texto' ? 0.08 : 0.02) * lin;
-    if (tl.modo === 'texto') { ry = tl.mov === 1 ? mix(tl.dir * 8, -tl.dir * 2, lin) : tl.dir * mix(-2, 2, lin); x = tl.dir * mix(-30, 30, lin); }
+    const lin = seg(t, tl.ini, dur, 'sine.out'), s = 1 + (tl.modo === 'texto' ? 0.04 : 0.015) * lin;
+    if (tl.modo === 'texto') { ry = tl.mov === 1 ? mix(tl.dir * 7, 0, lin) : tl.dir * mix(-1.5, 1.5, lin); x = tl.dir * mix(-12, 12, lin); }
     tl.el.style.transformOrigin = `${tl.cx || 960}px ${tl.cy || 600}px`;
-    tl.el.style.transform = `perspective(2400px) translateX(${x}px) rotateY(${ry}deg) scale(${s})`;
+    const ent = seg(t, tl.ini, 0.7, 'power3.out'), z = tl.modo === 'texto' ? mix(-160, 0, ent) : 0, rx = tl.modo === 'texto' ? mix(tl.mov === 0 ? 7 : -5, 0, ent) : 0;
+    tl.el.style.transform = `perspective(2400px) translateX(${x}px) translateZ(${z}px) rotateX(${rx}deg) rotateY(${ry}deg) scale(${s})`;
   }
 
+  const sai = tl.modo === 'texto' && !tl.op.fx ? seg(t, tl.fim - 0.24, 0.24, 'power2.in') : 0;
   tl.palavras.forEach(p => {
     const a = p.t - 0.04;
     if (t < a) { p.el.style.opacity = 0; return; }
@@ -585,6 +461,7 @@ function render(t) {
       p.el.style.transform = `translateY(${(1 - q) * 22}px)`;
       p.el.style.filter = q > 0.97 ? 'none' : `blur(${(1 - q) * 8}px)`;
     }
+    if (sai > 0) { p.el.style.opacity = Math.min(+p.el.style.opacity, 1 - sai); p.el.style.filter = `blur(${sai * 12}px)`; p.el.style.transform += ` translateY(${-sai * 18}px)`; }
   });
 }
 

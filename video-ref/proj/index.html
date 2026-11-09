@@ -19,6 +19,14 @@
   .abs { position: absolute; left: 0; top: 0; }
   .cheio { width: 1920px; height: 1200px; }
   #fundo { background: var(--preto); }
+  #fundo.r { background: radial-gradient(ellipse 85% 75% at 50% 45%, #9E101B 0%, #6A0911 52%, #250306 100%); }
+  #bokeh i { position: absolute; border-radius: 50%; }
+  #eco { position: absolute; left: 0; top: 0; width: 1920px; text-align: center; white-space: nowrap; font: 400 560px/1 'Indie Flower', cursive; color: rgba(235,59,59,.07); filter: blur(10px); pointer-events: none; }
+  .w.mao { text-shadow: 0 0 26px rgba(235,59,59,.5), 0 0 70px rgba(235,59,59,.28); }
+  .tela.r .w, .tela.r .w.leve { color: var(--creme); }
+  .tela.r .w.leve { color: rgba(239,236,229,.62); }
+  .tela.r .w.mao, .tela.r .w .b2 { color: var(--creme); -webkit-text-stroke-color: var(--creme); text-shadow: 0 0 30px rgba(255,210,200,.35); }
+  .tela.r svg.risco path { stroke: #EFECE5; }
   #brilho { width: 1700px; height: 1100px; margin: -550px 0 0 -850px; border-radius: 50%;
     background: radial-gradient(ellipse, rgba(235,59,59,.10) 0%, rgba(235,59,59,.03) 40%, rgba(0,0,0,0) 70%); }
   #lousa text.mao { font-family: 'Indie Flower', cursive; }
@@ -62,12 +70,14 @@
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="main" data-start="0" data-duration="253.04" data-width="1920" data-height="1200">
+<div id="root" data-composition-id="main" data-start="0" data-duration="252.82" data-width="1920" data-height="1200">
   <div id="fundo" class="abs cheio"></div>
   <div id="brilho" class="abs"></div>
+  <div id="eco"></div>
+  <div id="bokeh" class="abs cheio"></div>
   <svg id="lousa" class="abs cheio" viewBox="0 0 1920 1200" xmlns="http://www.w3.org/2000/svg"></svg>
   <div id="ui" class="abs cheio"></div>
-  <div id="palco" class="abs cheio"></div>
+    <div id="palco" class="abs cheio"></div>
   <div id="rotulo"><span class="ck">✓</span><span class="tx"></span></div>
   <div id="capitulo"></div>
 </div>

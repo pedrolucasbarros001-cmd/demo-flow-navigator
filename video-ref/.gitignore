@@ -6,3 +6,5 @@ out/
 prev/
 out-render.log
 out/*.mp4
+final/
+out-render-final.log
