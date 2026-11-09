@@ -1,3 +1,5 @@
 # mídia da referência (conteúdo de terceiros) e imagens de trabalho
 *.mp4
 pericia/*.png
+proj/frames/
+out/
