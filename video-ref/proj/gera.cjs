@@ -10,7 +10,7 @@ const R = ctx.window.ROTEIRO;
 
 const limpa = w => w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 const palavras = [];   // {txt, b (batida)}
-R.forEach((b, i) => b[1].split(/\s+/).filter(w => w && w !== '|').forEach(w => palavras.push({ txt: w.replace(/^[*^!_]+/, ''), b: i })));
+R.forEach((b, i) => b[1].split(/\s+/).filter(w => w && w !== '|').forEach(w => palavras.push({ txt: w.replace(/^[*^!_]+/, '').replace('/', ''), b: i })));
 
 // confere com o texto original
 const texto = fs.readFileSync(path.join(aqui, '..', 'roteiro', 'texto.txt'), 'utf8').split(/\s+/).map(limpa).filter(Boolean);

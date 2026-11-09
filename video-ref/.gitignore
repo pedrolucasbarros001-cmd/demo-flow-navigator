@@ -3,3 +3,5 @@
 pericia/*.png
 proj/frames/
 out/
+prev/
+out-render.log

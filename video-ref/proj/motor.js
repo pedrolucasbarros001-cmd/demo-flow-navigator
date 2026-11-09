@@ -1,438 +1,524 @@
-// motor.js: tipografia gritada, palavra por palavra no tempo da fala.
-// Um relógio só: render(t) escolhe a tela pelo tempo e desenha tudo a partir de t. Sem Math.random, Date.now ou timers.
+// motor.js v2: tipografia gritada (letra gigante, volume 3D, chicote com borrão, faíscas) + ilustrações de lousa.
+// Um relógio só: render(t) desenha o quadro inteiro a partir de t. Sem Math.random, Date.now ou timers.
 (function () {
-const S = STUDIO, W = 1080, H = 1920, M = 90;          // margem lateral
+const S = STUDIO, W = 1080, H = 1920, M = 60;
 const R = window.ROTEIRO, T = window.TEMPOS;
-const VERM = '#DF1904', CREME = '#F1EDE0', TINTA = '#0B0A0A', CHIP = '#160E0B', LINHA = '#5E4B42';
-const seg = (t, a, d, e) => S.seg(t, a, d, e);
+const VERM = '#DF1904', CREME = '#F3F0E8', TINTA = '#121010', AZUL = '#2AA7E0', LARANJA = '#EFA24A', VERDE = '#1F8A3B', CINZA = '#5B5753';
+const seg = (t, a, d, e) => S.seg(t, a, d, e), mix = S.mix;
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const vis = (t, a, d = 0.05) => (t >= a ? clamp((t - a) / d, 0, 1) : 0);
 const NS = 'http://www.w3.org/2000/svg';
-const palco = document.getElementById('palco'), fundo = document.getElementById('fundo'),
-      fxL = document.getElementById('fx'), risco = document.getElementById('risco');
+const $ = id => document.getElementById(id);
+const palco = $('palco'), fundo = $('fundo'), luz = $('luz'), faixas = $('faixas'), vinheta = $('vinheta'),
+      lousa = $('lousa'), risco = $('risco'), cv = $('faisca'), cx2 = cv.getContext('2d');
 
-// ------------------------------------------------------------------ monta as telas
+// filtros de borrão só na horizontal (o chicote da referência)
+const filtros = $('filtros');
+for (let k = 1; k <= 10; k++) {
+  const f = document.createElementNS(NS, 'filter'); f.id = 'bx' + k;
+  f.setAttribute('x', '-50%'); f.setAttribute('width', '200%'); f.setAttribute('y', '-10%'); f.setAttribute('height', '120%');
+  const g = document.createElementNS(NS, 'feGaussianBlur'); g.setAttribute('stdDeviation', `${k * 7} ${k * 0.6}`);
+  f.appendChild(g); filtros.appendChild(f);
+}
+const borrao = q => { const k = Math.round(clamp(q, 0, 1) * 10); return k ? `url(#bx${k})` : 'none'; };
+
+// palavras curtas viram a fonte larga pequena (as "amarrações" da referência: E TU PODE PEDIR)
+const CURTAS = new Set('E O A OS AS DE DO DA DOS DAS UM UMA QUE PRA PARA POR NO NA NOS NAS SE EM À AO TE EU ELE ELA É SÓ SEU SUA SEUS MAS COM SEM NÃO TU ISSO ESSE ESSA'.split(' '));
+const limpa = s => s.replace(/[,.:?]/g, '');
+
+// volume 3D: camadas de sombra dura + brilho
+function volume(cor, n, brilho) {
+  const c = []; for (let i = 1; i <= n; i++) c.push(`${i * 1.4}px ${i * 1.6}px 0 ${cor}`);
+  if (brilho) c.push(brilho); return c.join(',');
+}
+const VOL = {
+  k: volume('#5E0B05', 8, '0 0 50px rgba(223,25,4,.55)'), kd: volume('#3E0603', 8, '0 0 50px rgba(223,25,4,.6)'),
+  c: volume('#C8BFB1', 6), cd: volume('#8E1205', 6),
+  r: volume('#7E0A03', 8, '0 0 40px rgba(60,0,0,.35)'), rd: volume('#4A0402', 6),
+  lousa: volume('#CFC7B9', 4),
+};
+
+// ------------------------------------------------------------------ telas de texto
 let gw = 0;
 const telas = R.map((b, i) => {
   const [bg, txt, op = {}] = b;
-  const el = document.createElement('div');
-  el.className = 'tela abs ' + bg + (op.carimbo ? ' carimbo' : '');
-  const bloco = document.createElement('div'); bloco.className = 'bloco'; bloco.style.display = 'inline-block';
-  el.appendChild(bloco);
+  const rng = S.rng(1000 + i);
+  const el = document.createElement('div'); el.className = 'tela abs ' + bg + (op.carimbo ? ' carimbo' : '');
+  const bloco = document.createElement('div'); bloco.className = 'bloco'; el.appendChild(bloco);
   const linhas = [], palavras = [];
+  const nLinhas = txt.split('|').length;
   txt.split('|').forEach((ln, li) => {
     const l = document.createElement('div'); l.className = 'l';
     const inner = document.createElement('span'); l.appendChild(inner);
     const ws = ln.trim().split(/\s+/);
     ws.forEach((raw, wi) => {
-      const m = raw.match(/^([*^!_]*)(.*)$/), marcas = m[1], tx = m[2];
-      const s = document.createElement('span'); s.className = 'w'; s.textContent = tx;
-      if (marcas.includes('*')) s.classList.add('dest');
-      if (marcas.includes('^')) s.classList.add('larga');
-      if (marcas.includes('!')) s.classList.add('soco');
-      if (marcas.includes('_')) s.classList.add('contorno');
-      if (wi < ws.length - 1) s.style.marginRight = '0.2em';
+      const m = raw.match(/^([*^!_]*)(.*)$/), mk = m[1], tx = m[2];
+      const s = document.createElement('span'); s.className = 'w';
+      if (tx.includes('/')) { const [a, b2] = tx.split('/'); s.innerHTML = ws.length === 1 && mk.includes('!') ? `${a}<br><span class="b2">${b2}</span>` : `${a}<span class="b2">${b2}</span>`; } else s.textContent = tx;
+      const soco = mk.includes('!'), dest = mk.includes('*');
+      if (dest) s.classList.add('dest');
+      if (mk.includes('^')) s.classList.add('larga');
+      if (soco) s.classList.add('soco');
+      if (mk.includes('_')) s.classList.add('contorno');
+      // amarração: palavra curta numa linha com mais palavras vira larga e pequena
+      if (!mk && ws.length > 1 && CURTAS.has(limpa(tx))) s.classList.add('larga', 'mini');
+      if (wi < ws.length - 1) s.style.marginRight = '0.16em';
       inner.appendChild(s);
-      palavras.push({ el: s, t: T[gw], li, soco: marcas.includes('!'), larga: marcas.includes('^'), g: gw });
+      palavras.push({ el: s, t: T[gw], li, soco, dest, g: gw });
       gw++;
     });
-    bloco.appendChild(l); linhas.push({ el: l, inner, soco: /!/.test(ln), forte: /[*^]/.test(ln) });
+    bloco.appendChild(l); linhas.push({ el: l, inner, soco: /!/.test(ln), so1: ws.length === 1 });
   });
   if (!op.oculto) palco.appendChild(el);
   const temSoco = palavras.some(p => p.soco);
-  const al = op.al || (temSoco ? 'c' : (i % 3 === 2 ? 'c' : 'l'));
-  return { i, bg, op, el, bloco, linhas, palavras, al, ini: i === 0 ? 0 : palavras[0].t - 0.07 };
+  const al = op.al || (temSoco || op.fx ? 'c' : ['l', 'c', 'r'][Math.floor(rng() * 3)]);
+  const dir = rng() < 0.5 ? -1 : 1;
+  return { i, bg, op, el, bloco, linhas, palavras, al, dir, rng,
+    rotY: (rng() - 0.5) * 22, rotX: (rng() - 0.5) * 12, rotZ: (rng() - 0.5) * 5,
+    ini: i === 0 ? 0 : palavras[0].t - 0.06 };
 });
 const DUR = S.D;
 telas.forEach((tl, i) => { tl.fim = i < telas.length - 1 ? telas[i + 1].ini : DUR; });
 
-// ------------------------------------------------------------------ medida (depois das fontes)
 let medido = null;
 function mede() {
   const pronto = document.fonts && document.fonts.status === 'loaded';
   if (medido === pronto) return; medido = pronto;
   telas.forEach(tl => {
     if (tl.op.oculto) return;
-    tl.el.style.display = 'block';
-    const fx = !!tl.op.fx && tl.op.fx !== 'final';
-    const larguraMax = W - 2 * M - (tl.op.carimbo ? 104 : 0);
+    const lous = !!tl.op.fx && tl.op.fx !== 'final';
+    tl.el.style.display = 'block'; tl.el.style.transform = 'none';
+    const larg = W - 2 * M - (tl.op.carimbo ? 116 : 0);
     tl.linhas.forEach(l => {
       l.el.style.fontSize = '100px';
       const nat = l.inner.getBoundingClientRect().width || 1;
-      let cap = l.soco ? 340 : l.forte ? 260 : 200;
-      if (fx) cap = l.soco ? 220 : l.forte ? 160 : 130;
-      l.el.style.fontSize = Math.min(cap, 100 * larguraMax / nat) + 'px';
+      let alvo = larg, cap = 430;
+      if (l.so1 && l.soco && !lous && l.inner.textContent.length <= 7) alvo = W * 1.04;          // palavra-soco sozinha estoura a tela
+      if (lous) cap = 160;
+      if (tl.op.carimbo) cap = 200;
+      l.el.style.fontSize = Math.min(cap, 100 * alvo / nat) + 'px';
       l.el.style.textAlign = tl.al === 'c' ? 'center' : tl.al === 'r' ? 'right' : 'left';
     });
-    tl.bloco.style.textAlign = tl.al === 'c' ? 'center' : 'left';
-    const bw = tl.bloco.getBoundingClientRect().width, bh = tl.bloco.getBoundingClientRect().height;
-    const x = tl.al === 'c' ? (W - bw) / 2 : tl.al === 'r' ? W - M - bw : M;
-    const yc = (tl.op.y != null ? tl.op.y : 0.48) * H;
-    const y = clamp(yc - bh / 2, 70, H - 70 - bh);
-    tl.bloco.style.position = 'absolute'; tl.bloco.style.left = x + 'px'; tl.bloco.style.top = y + 'px';
-    tl.cx = x + bw / 2; tl.cy = y + bh / 2;
-    tl.palavras.forEach(p => { const r = p.el.getBoundingClientRect(); p.cy = r.top + r.height * 0.55; p.cx = r.left + r.width / 2; });
+    const r = tl.bloco.getBoundingClientRect();
+    const x = tl.al === 'c' ? (W - r.width) / 2 : tl.al === 'r' ? W - M - r.width : M;
+    const yc = (tl.op.y != null ? tl.op.y : 0.5) * H;
+    const y = lous ? Math.max(90, yc - r.height / 2) : yc - r.height / 2;
+    tl.bloco.style.left = x + 'px'; tl.bloco.style.top = y + 'px';
+    tl.cx = x + r.width / 2; tl.cy = y + r.height / 2;
+    tl.palavras.forEach(p => { const q = p.el.getBoundingClientRect(); p.cx = q.left + q.width / 2; p.cy = q.top + q.height * 0.5; });
     tl.el.style.display = 'none';
   });
 }
 
-// ------------------------------------------------------------------ ajudantes de SVG
-function el(tag, at, pai) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in at) e.setAttribute(k, at[k]);
-  (pai || fxL).appendChild(e); return e;
-}
-function texto(pai, s, at) { const e = el('text', Object.assign({ 'text-anchor': 'middle', 'dominant-baseline': 'central' }, at), pai); e.textContent = s; return e; }
-// pílula com texto; a largura acompanha o texto medido
-function pilula(pai, s, o) {
-  const g = el('g', {}, pai);
-  const r = el('rect', { rx: o.rx || 18, fill: o.fill || CHIP, stroke: o.stroke || LINHA, 'stroke-width': o.sw || 3 }, g);
-  const t = texto(g, s, { fill: o.cor || CREME, 'font-size': o.fs || 64, style: o.fam ? `font-family:${o.fam}` : '' });
-  g.ajusta = () => { const w = t.getComputedTextLength() + (o.pad || 70), h = o.h || (o.fs || 64) * 1.55; r.setAttribute('x', -w / 2); r.setAttribute('y', -h / 2); r.setAttribute('width', w); r.setAttribute('height', h); g.w = w; };
-  g.ajusta(); return g;
-}
-const pos = (g, x, y, s = 1, op = 1) => { g.setAttribute('transform', `translate(${x},${y}) scale(${s})`); g.setAttribute('opacity', op); };
-// tempo da palavra j da k-ésima tela da cena
-function cena(nome, idx) {
-  const bs = idx.map(i => telas[i]);
-  return { nome, bs, ini: bs[0].ini, fim: bs[bs.length - 1].fim, w: (k, j) => bs[k].palavras[j].t };
-}
-const entra = (t, a, d = 0.24) => seg(t, a, d, 'expo.out');
+// ------------------------------------------------------------------ lousa (ilustrações no traço de marcador)
+const rc = rough.svg(lousa);
+const defs = document.createElementNS(NS, 'defs'); lousa.appendChild(defs);
+// o bonequinho do quadro
+const sym = document.createElementNS(NS, 'symbol'); sym.id = 'gente'; sym.setAttribute('viewBox', '0 0 20 44');
+sym.innerHTML = '<circle cx="10" cy="5" r="4.6"/><path d="M4.6 11.2 H15.4 Q17.4 11.2 17.6 13.4 L18.6 24.2 Q18.7 25.6 17.3 25.6 Q16.2 25.6 16 24.4 L15 16.6 V42 Q15 43.6 13.4 43.6 Q11.8 43.6 11.8 42 V28.6 H8.2 V42 Q8.2 43.6 6.6 43.6 Q5 43.6 5 42 V16.6 L4 24.4 Q3.8 25.6 2.7 25.6 Q1.3 25.6 1.4 24.2 L2.4 13.4 Q2.6 11.2 4.6 11.2 Z"/>';
+defs.appendChild(sym);
 
-// ------------------------------------------------------------------ cenas gráficas
+function el(tag, at, pai) { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); (pai || lousa).appendChild(e); return e; }
+function texto(pai, s, at) { const e = el('text', Object.assign({ 'text-anchor': 'middle' }, at), pai); e.textContent = s; return e; }
+let semente = 1;
+const O = o => Object.assign({ seed: semente++, roughness: 1.3, bowing: 1.2, stroke: '#141414', strokeWidth: 4.5 }, o);
+// um traço que se desenha: guarda os paths e o comprimento de cada um
+function traco(g) {
+  const ps = [...g.querySelectorAll('path')].map(p => { const L = p.getTotalLength() || 1; p.setAttribute('stroke-dasharray', `${L} ${L}`); p.setAttribute('stroke-dashoffset', L); return { p, L }; });
+  const tot = ps.reduce((a, b) => a + b.L, 0);
+  return { g, ps, tot, desenha(q) { let r = q * tot; ps.forEach(o => { const v = clamp(r, 0, o.L); o.p.setAttribute('stroke-dashoffset', o.L - v); r -= o.L; }); } };
+}
+function grupo(pai) { return el('g', {}, pai); }
+function add(pai, node) { pai.appendChild(node); return node; }
+
+// funil: boca hachurada, faixas com rabisco, bico
+function funil(pai, x, y, w, h) {
+  const g = grupo(pai), ry = w * 0.13, bw = w * 0.2, yc = y + h * 0.64, yb = y + h;
+  const meia = f => mix(w / 2, bw / 2, f);
+  add(g, rc.ellipse(x, y, w, ry * 2, O({ fill: '#1A1A1A', fillStyle: 'hachure', hachureGap: Math.max(5, w / 48), hachureAngle: -40, fillWeight: Math.max(1.4, w / 260) })));
+  add(g, rc.line(x - w / 2, y, x - bw / 2, yc, O())); add(g, rc.line(x + w / 2, y, x + bw / 2, yc, O()));
+  add(g, rc.line(x - bw / 2, yc, x - bw / 2 * 0.92, yb, O())); add(g, rc.line(x + bw / 2, yc, x + bw / 2 * 0.92, yb, O()));
+  add(g, rc.arc(x, yb, bw * 0.92, bw * 0.28, 0, Math.PI, false, O({ strokeWidth: 3.5 })));
+  const fr = [0.17, 0.32, 0.46, 0.585];
+  fr.forEach((f, i) => {
+    const hw = meia(f / 0.64), yy = y + h * f;
+    add(g, rc.arc(x, yy, hw * 2, ry * 2 * hw / (w / 2), 0, Math.PI, false, O({ strokeWidth: 4 })));
+    // rabisco dentro da faixa
+    const yr = y + h * (f + (fr[i + 1] ? fr[i + 1] - f : 0.06) * 0.62) - 4, ww = hw * 0.95, pts = [];
+    const rr = S.rng(semente * 7); const n = 11;
+    for (let k = 0; k <= n; k++) pts.push([x - ww / 2 + ww * k / n + (rr() - 0.5) * 6, yr + (k % 2 ? -1 : 1) * (6 + rr() * 6) * Math.min(1, w / 400)]);
+    add(g, rc.curve(pts, O({ strokeWidth: Math.max(2.4, w / 150), roughness: 1.6 })));
+  });
+  return { g, tr: traco(g), boca: { x, y, w, ry }, bico: { x, y: yb } };
+}
+// seta rabiscada (vários traços)
+function seta(pai, x1, y1, x2, y2, sw = 3.4) {
+  const g = grupo(pai), a = Math.atan2(y2 - y1, x2 - x1), L = 46;
+  for (let k = 0; k < 4; k++) add(g, rc.line(x1 + k * 3, y1 + (k - 1.5) * 4, x2, y2, O({ strokeWidth: sw, roughness: 1.8 })));
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) add(g, rc.line(x2, y2, x2 - L * Math.cos(a + s * (0.45 + k * 0.06)), y2 - L * Math.sin(a + s * (0.45 + k * 0.06)), O({ strokeWidth: sw, roughness: 1.6 })));
+  return traco(g);
+}
+function circulo(pai, cx, cy, d, o) { const g = grupo(pai); add(g, rc.ellipse(cx, cy, d, d * 0.96, O(Object.assign({ strokeWidth: 7, roughness: 1.5 }, o)))); return traco(g); }
+// gente: pontos sem encostar, dentro de uma área
+function multidao(n, dentro, caixa, dmin, seed) {
+  const r = S.rng(seed), out = []; let tent = 0;
+  while (out.length < n && tent++ < n * 400) {
+    const x = mix(caixa[0], caixa[2], r()), y = mix(caixa[1], caixa[3], r());
+    if (!dentro(x, y)) continue;
+    if (out.some(p => Math.hypot(p.x - x, p.y - y) < dmin)) continue;
+    out.push({ x, y, d: r(), r: r() });
+  }
+  return out.sort((a, b) => a.y - b.y);
+}
+function boneco(pai, x, y, alt, cor) {
+  const u = el('use', { href: '#gente', width: alt * 20 / 44, height: alt, x: -alt * 10 / 44, y: -alt, fill: cor }, pai);
+  return { u, x, y, alt, cor, pos(px, py, s = 1, op = 1, c) { u.setAttribute('transform', `translate(${px},${py}) scale(${s})`); u.setAttribute('opacity', op); if (c) u.setAttribute('fill', c); } };
+}
+function rotulo(pai, s, x, y, fs = 42, extra) { return texto(pai, s, Object.assign({ x, y, class: 'rotulo', 'font-size': fs }, extra)); }
+
+function cena(nome, idx) { const bs = idx.map(i => telas[i]); return { nome, bs, ini: bs[0].ini, fim: bs[bs.length - 1].fim, w: (k, j) => bs[k].palavras[j < 0 ? bs[k].palavras.length + j : j].t }; }
 const FX = {};
 
-FX.canais = sc => {
-  const g = el('g'); const itens = [
-    ['INDICAÇÃO', 0, 0], ['ANÚNCIO', 0, 1], ['PROMOÇÃO', 0, 2], ['SITE', 0, 3],
-    ['FORMULÁRIO', 1, 0], ['WHATSAPP AUTOMÁTICO', 1, 1], ['PREÇO TABELADO', 1, 3]];
-  const ps = itens.map(([s]) => pilula(g, s, { fs: 96 }));
-  const num = itens.map((_, i) => texto(g, String(i + 1).padStart(2, '0'), { fill: VERM, 'font-size': 34, style: "font-family:'Archivo Black'" }));
+// 1 · o funil convencional, e só uma pessoa sai
+FX.funilmorto = sc => {
+  const g = grupo(), f = funil(g, 540, 1010, 600, 720);
+  const gente = multidao(46, (x, y) => true, [290, 760, 790, 975], 34, 3).map(p => ({ p, b: boneco(g, p.x, p.y, 62, AZUL) }));
+  const sai = boneco(g, 540, 1860, 78, VERM);
   return t => {
-    ps.forEach((p, i) => {
-      if (!p.w || p.w < 100) p.ajusta();
-      const [, k, j] = itens[i], a = sc.w(k, j), q = entra(t, a);
-      const k2 = Math.min(1, (W - 2 * M) / p.w), pw = p.w * k2;
-      const esq = i % 2 === 0, x = esq ? M + pw / 2 : W - M - pw / 2, y = 330 + i * 200;
-      pos(p, x + (1 - q) * (esq ? -140 : 140), y, k2, t >= a ? clamp((t - a) / 0.06, 0, 1) : 0);
-      pos(num[i], (esq ? M + 22 : W - M - pw + 22) + (1 - q) * (esq ? -140 : 140), y - 108, 1, t >= a ? clamp((t - a) / 0.06, 0, 1) : 0);
+    f.tr.desenha(seg(t, sc.ini + 0.05, 1.1, 'power2.inOut'));
+    gente.forEach(({ p, b }, i) => { const a = sc.ini + 0.5 + p.d * 1.1, q = seg(t, a, 0.45, 'bounce.out'); b.pos(p.x, mix(p.y - 260, p.y, q), 1, vis(t, a)); });
+    const a = sc.w(1, -1), q = seg(t, a, 0.5, 'power2.out'); sai.pos(540, mix(1760, 1860, q), mix(1.5, 1, q), vis(t, a));
+  };
+};
+
+// 2 · cada canal é um funil
+FX.funis = sc => {
+  const g = grupo(), itens = [['Indicação', 0, 0], ['Anúncio', 0, 1], ['Promoção', 0, 2], ['Site', 0, 3], ['Formulário', 1, 0], ['WhatsApp automático', 1, 1], ['Preço tabelado', 1, 3]];
+  const pos = [[200, 560], [540, 560], [880, 560], [200, 1050], [540, 1050], [880, 1050], [540, 1520]];
+  const fs = itens.map((it, i) => {
+    const [x, y] = pos[i], gg = grupo(g), f = funil(gg, x, y, 250, 230);
+    const gente = multidao(9, () => true, [x - 100, y - 95, x + 100, y + 2], 26, 50 + i).map(p => ({ p, b: boneco(gg, p.x, p.y, 34, AZUL) }));
+    const sai = boneco(gg, x, y + 290, 40, VERM);
+    const lb = rotulo(gg, it[0], x, y + 345, it[0].length > 14 ? 40 : 48, { 'font-weight': 400 });
+    return { f, gente, sai, lb, gg };
+  });
+  return t => {
+    fs.forEach((o, i) => {
+      const a = sc.w(itens[i][1], itens[i][2]);
+      o.f.tr.desenha(seg(t, a - 0.05, 0.5, 'power2.out'));
+      o.gente.forEach(({ p, b }) => { const aa = a + 0.15 + p.d * 0.35, q = seg(t, aa, 0.35, 'power3.out'); b.pos(p.x, mix(p.y - 90, p.y, q), 1, vis(t, aa)); });
+      o.lb.setAttribute('opacity', vis(t, a)); o.lb.setAttribute('transform', `translate(0,${(1 - seg(t, a, 0.25, 'expo.out')) * 30})`);
+      const ab = a + 0.7; o.sai.pos(o.sai.x, mix(o.sai.y - 40, o.sai.y, seg(t, ab, 0.35, 'power2.out')), 1, vis(t, ab));
     });
   };
 };
 
-function desenhaFunil(g, topo, larg, neckY) {
-  const d = `M ${540 - larg / 2} ${topo} L ${540 - 70} ${neckY - 120} L ${540 - 70} ${neckY} M ${540 + larg / 2} ${topo} L ${540 + 70} ${neckY - 120} L ${540 + 70} ${neckY}`;
-  const p = el('path', { d, fill: 'none', stroke: CREME, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
-  const L = 2 * (Math.hypot(larg / 2 - 70, neckY - 120 - topo) + 120);
-  p.setAttribute('stroke-dasharray', L);
-  return q => p.setAttribute('stroke-dashoffset', L * (1 - q));
-}
-
-FX.funil = sc => {
-  const g = el('g'); const traca = desenhaFunil(g, 640, 900, 1250);
-  const nomes = ['INDICAÇÃO', 'ANÚNCIO', 'PROMOÇÃO', 'SITE', 'FORMULÁRIO', 'WHATSAPP', 'PREÇO'];
-  const ps = nomes.map(s => pilula(g, s, { fs: 40, rx: 12, pad: 40 }));
-  const caixa = el('g', {}, g);
-  el('rect', { x: -380, y: -95, width: 760, height: 190, fill: VERM }, caixa);
-  const ct = texto(caixa, 'ORÇAMENTO', { fill: CREME, 'font-size': 104, style: "font-family:'Archivo Black';letter-spacing:-3px" });
-  const casa = [[230, 470], [480, 440], [760, 470], [330, 560], [620, 550], [860, 570], [170, 580]];
+// 3 · todos terminam no orçamento
+FX.orcamento = sc => {
+  const g = grupo(), xs = [170, 400, 630, 860];
+  const fs = xs.map((x, i) => {
+    const f = funil(g, x, 640, 230, 380);
+    const gente = multidao(10, () => true, [x - 95, 520, x + 95, 636], 25, 80 + i).map(p => ({ p, b: boneco(g, p.x, p.y, 32, AZUL) }));
+    return { f, gente };
+  });
+  const caixa = grupo(g), cx = 140, cy = 1300, cw = 800, ch = 300;
+  const borda = traco(add(caixa, rc.rectangle(cx, cy, cw, ch, O({ strokeWidth: 6 }))));
+  const tinta = traco(add(caixa, rc.rectangle(cx + 8, cy + 8, cw - 16, ch - 16, O({ stroke: 'none', fill: VERM, fillStyle: 'hachure', hachureGap: 13, fillWeight: 4, hachureAngle: -35 }))));
+  const lb = texto(caixa, 'ORÇAMENTO', { x: 540, y: cy + ch / 2 + 46, class: 'forte', 'font-size': 150, fill: TINTA, stroke: CREME, 'stroke-width': 14, 'paint-order': 'stroke' });
+  const caem = [];
+  xs.forEach((x, i) => { for (let k = 0; k < 2; k++) caem.push({ b: boneco(g, x, 1100, 40, VERM), x, k, alvo: [cx + 120 + (i * 2 + k) * 80, cy + ch - 30] }); });
   return t => {
-    traca(seg(t, sc.ini + 0.05, 0.7, 'power2.out'));
-    const cai = sc.w(1, 2);                       // "LUGAR,"
-    ps.forEach((p, i) => {
-      if (!p.w || p.w < 60) p.ajusta();
-      const a = sc.ini + 0.15 + i * 0.07, q = entra(t, a), [x0, y0] = casa[i];
-      const c = seg(t, cai + i * 0.06, 0.55, 'power2.in');
-      const x = S.mix(x0, 540, c), y = S.mix(y0 - (1 - q) * 60, 1260, c);
-      pos(p, x, y, S.mix(1, 0.35, c), (t >= a ? clamp((t - a) / 0.08, 0, 1) : 0) * (1 - seg(t, cai + i * 0.06 + 0.4, 0.15)));
+    fs.forEach((o, i) => {
+      o.f.tr.desenha(seg(t, sc.ini + i * 0.12, 0.8, 'power2.out'));
+      o.gente.forEach(({ p, b }) => { const a = sc.ini + 0.3 + i * 0.1 + p.d * 0.5; b.pos(p.x, mix(p.y - 120, p.y, seg(t, a, 0.35, 'power3.out')), 1, vis(t, a)); });
     });
-    const a = sc.w(2, 1), q = seg(t, a, 0.28, 'expo.out');
-    pos(caixa, 540, 1470, S.mix(1.4, 1, q), t >= a ? clamp((t - a) / 0.05, 0, 1) : 0);
-    const cx = sc.w(2, 0); caixa.setAttribute('opacity', t >= cx ? (t >= a ? 1 : 0.25) : 0);
-    ct.setAttribute('opacity', t >= a ? 1 : 0);
+    borda.desenha(seg(t, sc.w(0, -1), 0.7, 'power2.inOut'));
+    const desce = sc.w(1, -1);
+    caem.forEach((c, j) => {
+      const a = sc.w(0, 2) + j * 0.06, sai = seg(t, a, 0.3, 'power2.out'), vai = seg(t, desce + j * 0.05, 0.6, 'power2.inOut');
+      c.b.pos(mix(c.x, c.alvo[0], vai), mix(mix(1060, 1110, sai), c.alvo[1], vai), 1, vis(t, a));
+    });
+    const ao = sc.w(2, 1), q = seg(t, ao, 0.3, 'expo.out');
+    tinta.desenha(seg(t, ao - 0.05, 0.35, 'power2.out'));
+    lb.setAttribute('opacity', vis(t, ao)); lb.setAttribute('transform', `translate(540,${cy + ch / 2}) scale(${mix(1.5, 1, q)}) translate(-540,${-cy - ch / 2})`);
   };
 };
 
+// 4 · de cada 20, 7 fecham
 FX.pessoas = sc => {
-  const g = el('g'); const fig = [];
-  for (let i = 0; i < 20; i++) {
-    const f = el('g', {}, g);
-    const cab = el('circle', { cx: 0, cy: -48, r: 34, 'stroke-width': 6 }, f);
-    const corpo = el('path', { d: 'M -62 62 Q -62 -2 0 -2 Q 62 -2 62 62 Z', 'stroke-width': 6, 'stroke-linejoin': 'round' }, f);
-    fig.push({ f, cab, corpo, x: 540 + ((i % 5) - 2) * 186, y: 820 + Math.floor(i / 5) * 240 });
-  }
+  const g = grupo(), fig = [];
+  for (let i = 0; i < 20; i++) fig.push(boneco(g, 540 + ((i % 5) - 2) * 190, 840 + Math.floor(i / 5) * 290, 250, AZUL));
   const fecham = new Set([1, 4, 7, 10, 13, 16, 18]);
   return t => {
-    const a20 = sc.w(1, 2), a7 = sc.w(3, 1), a13 = sc.w(4, 2), aNao = sc.w(5, 2);
-    fig.forEach((o, i) => {
-      const a = a20 + i * 0.025, q = entra(t, a, 0.3);
-      let fill = 'none', stroke = CREME, op = t >= a ? clamp((t - a) / 0.08, 0, 1) : 0, dy = (1 - q) * 70;
-      if (fecham.has(i) && t >= a7) { fill = CREME; }
-      if (!fecham.has(i) && t >= a13) { stroke = VERM; }
-      if (!fecham.has(i)) { const s = seg(t, aNao, 0.5, 'power2.out'); op *= 1 - 0.7 * s; dy += 26 * s; }
-      let esc = S.mix(0.75, 1, q);
-      if (fecham.has(i)) esc *= 1 + 0.12 * (1 - seg(t, a7 + (i % 3) * 0.04, 0.3, 'power2.out')) * (t >= a7 ? 1 : 0);
-      [o.cab, o.corpo].forEach(e => { e.setAttribute('fill', fill); e.setAttribute('stroke', stroke); });
-      pos(o.f, o.x, o.y + dy, esc, op);
+    const a20 = sc.w(1, 2), a7 = sc.w(3, 1), a13 = sc.w(4, 2), aNao = sc.w(5, -1);
+    fig.forEach((b, i) => {
+      const a = a20 + i * 0.03, q = seg(t, a, 0.4, 'back.out(2)');
+      let cor = AZUL, op = vis(t, a), s = mix(0.6, 1, q), dy = 0;
+      if (fecham.has(i) && t >= a7) { cor = VERM; s *= 1 + 0.15 * (1 - seg(t, a7 + (i % 3) * 0.05, 0.35, 'power2.out')); }
+      if (!fecham.has(i)) {
+        if (t >= a13) s *= 1 + 0.1 * (1 - seg(t, a13 + (i % 4) * 0.04, 0.35, 'power2.out'));
+        const sm = seg(t, aNao, 0.6, 'power2.out'); op *= 1 - 0.75 * sm; dy = 30 * sm;
+      }
+      b.pos(b.x, b.y + dy, s, op, cor);
     });
   };
 };
 
+// 5 · muita gente entra, pouca sai
 FX.gasto = sc => {
-  const g = el('g'); const traca = desenhaFunil(g, 600, 940, 1300);
-  const rng = S.rng(7), n = 72, pts = [];
-  for (let i = 0; i < n; i++) {
-    const c = el('circle', { r: 11, fill: CREME }, g);
-    pts.push({ c, x: 160 + rng() * 760, y: 640 + rng() * 260, d: rng() * 0.5, f: rng() * 6.28 });
-  }
-  const sai = [0, 1, 2, 3].map(() => el('circle', { r: 20, fill: VERM }, g));
+  const g = grupo(), f = funil(g, 540, 940, 660, 720);
+  const ondas = [0, 1, 2].map(k => multidao(44, () => true, [230, 560 + (2 - k) * 0, 850, 935], 30, 200 + k).map(p => ({ p, b: boneco(g, p.x + (k - 1) * 9, p.y - k * 18, 60, AZUL) })));
+  const st = seta(g, 960, 1500, 640, 1640);
+  const sai = [boneco(g, 500, 1820, 78, VERM), boneco(g, 590, 1830, 78, VERM)];
   return t => {
-    traca(seg(t, sc.ini + 0.05, 0.7, 'power2.out'));
-    const chega = sc.w(0, 5), aperta = sc.w(3, 4), poucos = sc.w(4, 0);
-    pts.forEach((p, i) => {
-      const a = chega - 0.25 + p.d, q = seg(t, a, 0.5, 'power2.out');
-      // dentro do funil a borda aperta conforme a altura
-      const y0 = S.mix(-60, p.y, q);
-      const meia = S.mix(470, 70, (y0 - 600) / 580);
-      let x = 540 + clamp((p.x - 540), -meia + 20, meia - 20) + 6 * Math.sin(t * 2.2 + p.f);
-      let y = y0 + 4 * Math.cos(t * 1.8 + p.f);
-      const s = seg(t, aperta + p.d * 0.6, 0.6, 'power2.in');
-      x = S.mix(x, 540, s); y = S.mix(y, 1220, s);
-      p.c.setAttribute('cx', x); p.c.setAttribute('cy', y);
-      p.c.setAttribute('opacity', (t >= a ? 1 : 0) * (1 - seg(t, aperta + p.d * 0.6 + 0.45, 0.2)));
-    });
-    sai.forEach((c, i) => {
-      const a = poucos + i * 0.12, q = seg(t, a, 0.45, 'expo.out');
-      c.setAttribute('cx', 540 + (i - 1.5) * 64 * q); c.setAttribute('cy', S.mix(1260, 1480, q));
-      c.setAttribute('opacity', t >= a ? 1 : 0);
-    });
+    f.tr.desenha(seg(t, sc.ini, 0.9, 'power2.inOut'));
+    const quando = [sc.w(0, -1), sc.w(1, -1), sc.w(2, -1)];
+    ondas.forEach((o, k) => o.forEach(({ p, b }) => { const a = quando[k] - 0.2 + p.d * 0.6, q = seg(t, a, 0.45, 'bounce.out'); b.pos(p.x + (k - 1) * 9, mix(p.y - 300, p.y - k * 18, q), 1, vis(t, a)); }));
+    st.desenha(seg(t, sc.w(3, -1), 0.45, 'power2.out'));
+    sai.forEach((b, i) => { const a = sc.w(4, 0) + i * 0.25, q = seg(t, a, 0.45, 'power2.out'); b.pos(b.x, mix(b.y - 110, b.y, q), mix(1.4, 1, q), vis(t, a)); });
   };
 };
 
+// 6 · cinco vezes sim
 FX.sins = sc => {
-  const g = el('g'); const objs = ['ANÚNCIO', 'ORÇAMENTO', 'PREÇO', 'SINAL', 'MARCAÇÃO'];
-  const linhas = objs.map((s, k) => {
-    const lg = el('g', {}, g);
-    el('rect', { x: -60, y: -60, width: 120, height: 120, rx: 18, fill: 'none', stroke: TINTA, 'stroke-width': 8 }, lg);
-    const ck = el('path', { d: 'M -32 2 L -8 28 L 38 -30', fill: 'none', stroke: VERM, 'stroke-width': 16, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': 120 }, lg);
-    const sim = texto(lg, 'SIM', { x: 110, fill: TINTA, 'font-size': 96, 'text-anchor': 'start', style: "font-family:'Archivo Black';letter-spacing:-3px" });
-    const pa = texto(lg, k === 4 ? 'PARA A' : 'PARA O', { x: 370, y: -52, fill: '#7A716A', 'font-size': 40, 'text-anchor': 'start' });
-    const ob = texto(lg, s, { x: 370, y: 22, fill: TINTA, 'font-size': 104, 'text-anchor': 'start' });
-    return { lg, ck, sim, pa, ob };
+  const g = grupo(), objs = ['anúncio', 'orçamento', 'preço', 'sinal', 'marcação'];
+  const ls = objs.map((s, k) => {
+    const y = 420 + k * 290, lg = grupo(g);
+    const cx = traco(add(lg, rc.rectangle(90, y - 70, 140, 140, O({ strokeWidth: 6 }))));
+    const ck = traco(add(lg, rc.linearPath([[118, y - 4], [150, y + 34], [212, y - 56]], O({ stroke: VERM, strokeWidth: 15, roughness: 1 }))));
+    const sim = texto(lg, 'SIM', { x: 270, y: y + 40, class: 'forte', 'font-size': 150, fill: TINTA, 'text-anchor': 'start' });
+    const pa = rotulo(lg, k === 4 ? 'para a' : 'para o', 500, y - 30, 44, { 'text-anchor': 'start' });
+    const ob = texto(lg, s.toUpperCase(), { x: 500, y: y + 52, class: 'forte', 'font-size': 92, fill: VERM, 'text-anchor': 'start' });
+    return { cx, ck, sim, pa, ob };
   });
+  return t => ls.forEach((o, k) => {
+    const a = sc.w(k, 0), aP = sc.w(k, 1), aO = sc.w(k, 3);
+    o.cx.desenha(seg(t, a - 0.1, 0.3, 'power2.out'));
+    o.sim.setAttribute('opacity', vis(t, a)); o.sim.setAttribute('transform', `translate(${(1 - seg(t, a, 0.25, 'expo.out')) * -80},0)`);
+    o.pa.setAttribute('opacity', vis(t, aP));
+    o.ob.setAttribute('opacity', vis(t, aO)); o.ob.setAttribute('transform', `translate(${(1 - seg(t, aO, 0.25, 'expo.out')) * 80},0)`);
+    o.ck.desenha(seg(t, aO, 0.25, 'power2.out'));
+  });
+};
+
+// 7 · do funil para o seu mundo
+FX.troca = sc => {
+  const g = grupo(), f = funil(g, 260, 640, 300, 380);
+  const gf = multidao(14, () => true, [140, 520, 380, 636], 26, 300).map(p => ({ p, b: boneco(g, p.x, p.y, 34, AZUL) }));
+  const lf = rotulo(g, 'Funil tradicional', 260, 1110, 46);
+  const st = seta(g, 400, 760, 560, 990);
+  const C = [600, 1390], D = 760, circ = circulo(g, C[0], C[1], D);
+  const gm = multidao(190, (x, y) => Math.hypot(x - C[0], (y - 26) - C[1]) < D / 2 - 40, [C[0] - D / 2, C[1] - D / 2, C[0] + D / 2, C[1] + D / 2 + 30], 33, 301).map(p => ({ p, b: boneco(g, p.x, p.y, 40, AZUL) }));
+  const lm = rotulo(g, 'seu mundo (marca pessoal)', C[0], C[1] + D / 2 + 90, 48);
+  const risca = traco(grupo(g)); // trocado logo abaixo
+  const rg = grupo(g); add(rg, rc.line(110, 560, 420, 1080, O({ stroke: VERM, strokeWidth: 10 }))); add(rg, rc.line(420, 560, 110, 1080, O({ stroke: VERM, strokeWidth: 10 })));
+  const rq = traco(rg);
   return t => {
-    linhas.forEach((o, k) => {
-      const a = sc.w(k, 0), q = entra(t, a), aP = sc.w(k, 1), aO = sc.w(k, 3);
-      pos(o.lg, 150 + (1 - q) * -120, 470 + k * 245, 1, t >= a ? clamp((t - a) / 0.06, 0, 1) : 0);
-      o.pa.setAttribute('opacity', t >= aP ? 1 : 0);
-      const qo = entra(t, aO); o.ob.setAttribute('opacity', t >= aO ? 1 : 0);
-      o.ob.setAttribute('transform', `translate(${(1 - qo) * 80},0)`);
-      o.ck.setAttribute('stroke-dashoffset', 120 * (1 - seg(t, aO, 0.22, 'power2.out')));
-    });
+    f.tr.desenha(seg(t, sc.ini, 0.8, 'power2.inOut'));
+    gf.forEach(({ p, b }) => { const a = sc.ini + 0.3 + p.d * 0.5; b.pos(p.x, mix(p.y - 100, p.y, seg(t, a, 0.35, 'power3.out')), 1, vis(t, a)); });
+    lf.setAttribute('opacity', vis(t, sc.ini + 0.5, 0.2));
+    st.desenha(seg(t, sc.w(1, -1), 0.4, 'power2.out'));
+    const am = sc.w(2, 2);
+    circ.desenha(seg(t, am - 0.15, 0.6, 'power2.inOut'));
+    gm.forEach(({ p, b }) => { const a = am + 0.1 + p.d * 0.9, q = seg(t, a, 0.3, 'back.out(2)'); b.pos(p.x, p.y, mix(0.3, 1, q), vis(t, a)); });
+    lm.setAttribute('opacity', vis(t, am + 0.5, 0.2));
+    rq.desenha(seg(t, sc.w(3, -1), 0.4, 'power2.out'));
   };
 };
 
-FX.mundo = sc => {
-  const g = el('g'); const C = [540, 1180];
-  const raios = [150, 250, 345, 430, 500];
-  const an = raios.map((r, i) => el('circle', { cx: C[0], cy: C[1], r, fill: 'none', stroke: i === 0 ? CREME : LINHA, 'stroke-width': i === 0 ? 5 : 4 }, g));
-  const rng = S.rng(11);
-  const gente = Array.from({ length: 16 }, (_, i) => ({ c: el('circle', { r: 10, fill: CREME }, g), r: raios[2 + (i % 3)], a: rng() * 6.28, v: 0.05 + rng() * 0.07 }));
-  const nucleo = el('circle', { cx: C[0], cy: C[1], r: 150, fill: VERM, opacity: 0 }, g);
-  const zona = texto(g, 'ZONA DE', { x: C[0], y: C[1] - 46, fill: CREME, 'font-size': 52, style: "font-family:'Archivo Black'", opacity: 0 });
-  const lucro = texto(g, 'LUCRO', { x: C[0], y: C[1] + 28, fill: CREME, 'font-size': 92, style: "font-family:'Archivo Black';letter-spacing:-3px", opacity: 0 });
-  const viajante = el('circle', { r: 16, fill: CREME, opacity: 0 }, g);
-  const temCentro = sc.bs.some(b => b.palavras.some(p => /^CENTRO/.test(p.el.textContent)));
-  const temZona = sc.bs[sc.bs.length - 1].op.oculto;
+// 8 · o mundo com centro: zona de lucro (mesmo desenho do seu quadro)
+function alvo(g, C, D, seed) {
+  const circ = circulo(g, C[0], C[1], D), c2 = circulo(g, C[0], C[1], D * 0.56, { strokeWidth: 4.5 }), c3 = circulo(g, C[0], C[1], D * 0.3, { strokeWidth: 4 });
+  const gente = multidao(250, (x, y) => Math.hypot(x - C[0], (y - 22) - C[1]) < D / 2 - 34, [C[0] - D / 2, C[1] - D / 2, C[0] + D / 2, C[1] + D / 2 + 30], 31, seed)
+    .map(p => { const d = Math.hypot(p.x - C[0], p.y - 22 - C[1]); return { p, d, b: boneco(g, p.x, p.y, 38, AZUL) }; })
+    .filter(o => Math.abs(o.d - D * 0.28) > 18 && Math.abs(o.d - D * 0.15) > 16);
+  return { circ, c2, c3, gente };
+}
+FX.zona = sc => {
+  const g = grupo(), C = [540, 1260], D = 840, A = alvo(g, C, D, 400);
+  const caixa = traco(add(grupo(g), rc.rectangle(50, 560, 980, 1260, O({ strokeWidth: 3.5, strokeLineDash: [18, 14], roughness: 0.8 }))));
+  const l1 = rotulo(g, 'tattoobrand', 540, 645, 54, { 'font-weight': 400 });
+  const l2 = rotulo(g, '(marca pessoal projetada para fazer dinheiro)', 540, 705, 40, { 'font-style': 'italic' });
+  const cifrao = grupo(g);
+  add(cifrao, rc.curve([[985, 850], [905, 830], [880, 870], [960, 905], [985, 945], [905, 960], [870, 935]], O({ stroke: VERDE, strokeWidth: 7 })));
+  add(cifrao, rc.line(918, 800, 925, 1005, O({ stroke: VERDE, strokeWidth: 6 }))); add(cifrao, rc.line(945, 795, 952, 1000, O({ stroke: VERDE, strokeWidth: 6 })));
+  add(cifrao, rc.line(870, 890, 1000, 870, O({ stroke: VERDE, strokeWidth: 5 })));
+  const cf = traco(cifrao);
   return t => {
-    const cresce = sc.w(0, sc.bs[0].palavras.length - 1);
-    an.forEach((c, i) => {
-      const a = sc.ini + 0.05 + i * 0.07, q = seg(t, a, 0.6, 'expo.out');
-      const extra = temZona ? 0.06 * seg(t, cresce, 0.8, 'power2.out') : 0;
-      c.setAttribute('r', raios[i] * (S.mix(0.8, 1, q) + extra)); c.setAttribute('opacity', t >= a ? clamp((t - a) / 0.1, 0, 1) : 0);
+    const a0 = sc.ini, cresce = sc.w(0, -1);
+    A.circ.desenha(seg(t, a0, 0.7, 'power2.inOut'));
+    const k = 1 + 0.05 * seg(t, cresce, 0.9, 'power2.out');
+    g.setAttribute('transform', `translate(${C[0]},${C[1]}) scale(${k}) translate(${-C[0]},${-C[1]})`);
+    const aLar = sc.w(1, -1), aCen = sc.w(3, -1), aZ = sc.w(5, 0), aL = sc.w(5, 2);
+    A.c2.desenha(seg(t, aLar - 0.2, 0.6, 'power2.inOut')); A.c3.desenha(seg(t, aCen - 0.2, 0.5, 'power2.inOut'));
+    A.gente.forEach(({ p, d, b }) => {
+      const a = a0 + 0.15 + p.d * 0.8; let cor = AZUL, s = mix(0.3, 1, seg(t, a, 0.3, 'back.out(2)'));
+      if (d < D * 0.28 && t >= aLar + p.r * 0.4) cor = LARANJA;
+      if (d < D * 0.15 && t >= aCen + p.r * 0.3) cor = VERM;
+      b.pos(p.x, p.y, s, vis(t, a), cor);
     });
-    gente.forEach((p, i) => {
-      const a = sc.ini + 0.4 + i * 0.03, ang = p.a + t * p.v;
-      p.c.setAttribute('cx', C[0] + Math.cos(ang) * p.r); p.c.setAttribute('cy', C[1] + Math.sin(ang) * p.r);
-      p.c.setAttribute('opacity', t >= a ? 0.85 : 0);
-    });
-    if (temCentro) {
-      const k = sc.bs.findIndex(b => b.palavras.some(p => /^CENTRO/.test(p.el.textContent)));
-      const a = sc.bs[k].palavras[2] ? sc.w(k, 2) : sc.w(k, sc.bs[k].palavras.length - 1);
-      const q = seg(t, a - 0.25, 1.1, 'power3.inOut'), ang = -2.2 + q * 3.6, r = S.mix(500, 0, q);
-      viajante.setAttribute('cx', C[0] + Math.cos(ang) * r); viajante.setAttribute('cy', C[1] + Math.sin(ang) * r);
-      viajante.setAttribute('opacity', t >= a - 0.25 ? 1 : 0);
-    }
-    if (temZona) {
-      const k = sc.bs.length - 1, aZ = sc.w(k, 0), aL = sc.w(k, 2), q = seg(t, aZ, 0.3, 'expo.out');
-      nucleo.setAttribute('opacity', t >= aZ ? 1 : 0); nucleo.setAttribute('r', 150 * S.mix(1.25, 1, q));
-      zona.setAttribute('opacity', t >= aZ ? 1 : 0);
-      lucro.setAttribute('opacity', t >= aL ? 1 : 0);
-      lucro.setAttribute('transform', `translate(${C[0]},${C[1] + 28}) scale(${S.mix(1.35, 1, entra(t, aL))}) translate(${-C[0]},${-C[1] - 28})`);
-    }
+    caixa.desenha(seg(t, aZ - 0.1, 0.5, 'power2.out'));
+    l1.setAttribute('opacity', vis(t, aZ, 0.15)); l2.setAttribute('opacity', vis(t, aZ + 0.15, 0.15));
+    cf.desenha(seg(t, aL, 0.45, 'power2.out'));
+  };
+};
+// 9 · mover uma pessoa até o centro
+FX.zona2 = sc => {
+  const g = grupo(), C = [540, 1180], D = 900, A = alvo(g, C, D, 401);
+  const eu = boneco(g, 0, 0, 70, AZUL), marca = circulo(g, 0, 0, 120, { stroke: VERM, strokeWidth: 5 });
+  return t => {
+    A.circ.desenha(seg(t, sc.ini, 0.35)); A.c2.desenha(seg(t, sc.ini + 0.1, 0.35)); A.c3.desenha(seg(t, sc.ini + 0.2, 0.35));
+    A.gente.forEach(({ p, d, b }) => b.pos(p.x, p.y, 1, vis(t, sc.ini + p.d * 0.3), d < D * 0.15 ? VERM : d < D * 0.28 ? LARANJA : AZUL));
+    const a = sc.w(0, 1), q = seg(t, a, sc.w(1, -1) - a + 0.2, 'power2.inOut');
+    const ang = -2.4 + q * 2.2, r = mix(D * 0.42, 0, q), x = C[0] + Math.cos(ang) * r, y = C[1] + 20 + Math.sin(ang) * r;
+    eu.pos(x, y, 1, vis(t, sc.ini + 0.2), q > 0.75 ? VERM : q > 0.4 ? LARANJA : AZUL);
+    marca.g.setAttribute('transform', `translate(${x},${y - 34})`); marca.desenha(seg(t, sc.ini + 0.3, 0.4));
   };
 };
 
+// 10 · a teia de conteúdo e ofertas
 FX.teia = sc => {
-  const g = el('g'), ga = el('g', {}, g), gn = el('g', {}, g);
-  const N = {
-    post: [250, 590, 'POST'], cont: [790, 590, 'CONTEÚDO'], dm: [790, 930, 'DM'], ofe: [540, 1270, 'OFERTA'],
-    story: [230, 1000, 'STORY'], dest: [270, 1620, 'DESTAQUE'], link: [800, 1620, 'LINK NA BIO'] };
+  const g = grupo(), ga = grupo(g), gn = grupo(g);
+  const N = { post: [230, 620, 'POST'], cont: [800, 620, 'CONTEÚDO'], dm: [800, 960, 'DM'], ofe: [540, 1290, 'OFERTA'], story: [220, 1020, 'STORY'], dest: [250, 1640, 'DESTAQUE'], link: [810, 1640, 'LINK NA BIO'] };
   const nos = {};
-  for (const k in N) nos[k] = k === 'ofe'
-    ? pilula(gn, N[k][2], { fs: 92, fill: VERM, stroke: VERM, fam: "'Archivo Black'", pad: 90 })
-    : pilula(gn, N[k][2], { fs: 66 });
-  const arestas = [['post', 'cont'], ['cont', 'dm'], ['dm', 'ofe'], ['story', 'ofe'], ['dest', 'ofe'], ['link', 'ofe']].map(([a, b]) => {
+  for (const k in N) {
+    const [x, y, s] = N[k], ng = grupo(gn), oferta = k === 'ofe', w = oferta ? 420 : Math.max(220, s.length * 34 + 70), h = oferta ? 190 : 130;
+    const tr = traco(add(ng, rc.ellipse(x, y, w, h, O(oferta ? { fill: VERM, fillStyle: 'hachure', hachureGap: 11, fillWeight: 3.5, strokeWidth: 6 } : { strokeWidth: 5 }))));
+    const lb = texto(ng, s, { x, y: y + (oferta ? 34 : 24), class: 'forte', 'font-size': oferta ? 96 : 66, fill: TINTA, stroke: oferta ? CREME : 'none', 'stroke-width': oferta ? 12 : 0, 'paint-order': 'stroke' });
+    nos[k] = { tr, lb, x, y };
+  }
+  const ar = [['post', 'cont'], ['cont', 'dm'], ['dm', 'ofe'], ['story', 'ofe'], ['dest', 'ofe'], ['link', 'ofe']].map(([a, b]) => {
     const [x1, y1] = N[a], [x2, y2] = N[b], d = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / d, uy = (y2 - y1) / d;
-    const c1 = b === 'ofe' ? 120 : 110, c2 = b === 'ofe' ? 130 : 100;
-    const p1 = [x1 + ux * c1, y1 + uy * (a === 'cont' ? 70 : c1 * 0.6)], p2 = [x2 - ux * c2, y2 - uy * (b === 'dm' ? 70 : c2 * 0.7)];
-    const L = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
-    const ln = el('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: CREME, 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-dasharray': L }, ga);
-    const ang = Math.atan2(uy, ux) * 180 / Math.PI;
-    const ponta = el('path', { d: 'M 0 0 L -26 -15 L -26 15 Z', fill: CREME }, ga);
-    const sinal = el('circle', { r: 12, fill: VERM }, ga);
-    return { ln, ponta, sinal, p1, p2, L, ang };
+    const c1 = a === 'post' ? 150 : 95, c2 = b === 'ofe' ? 160 : 110;
+    return { s: seta(ga, x1 + ux * c1, y1 + uy * c1 * 0.75, x2 - ux * c2, y2 - uy * c2 * 0.75, 3.6), p1: [x1 + ux * c1, y1 + uy * c1 * 0.75], p2: [x2 - ux * c2, y2 - uy * c2 * 0.75], dot: el('circle', { r: 13, fill: VERM }, ga) };
   });
-  // quando cada coisa aparece: [tela, palavra]
   const quando = { post: [0, 1], cont: [0, 5], dm: [1, 5], ofe: [3, 3], story: [5, 3], dest: [7, 3], link: [9, 3] };
   const qa = [[0, 2], [1, 2], [2, 2], [6, 2], [8, 1], [10, 1]];
   return t => {
+    const fim = sc.w(10, -1);
     for (const k in nos) {
-      const p = nos[k]; if (!p.w || p.w < 80) p.ajusta();
-      const a = sc.w(...quando[k]), q = seg(t, a, k === 'ofe' ? 0.3 : 0.24, 'expo.out');
-      let s = S.mix(k === 'ofe' ? 1.45 : 0.8, 1, q);
-      if (k === 'ofe') { const fim = sc.w(10, 4); s *= 1 + 0.1 * (t >= fim ? 1 - seg(t, fim, 0.4, 'power2.out') : 0); }
-      pos(p, N[k][0], N[k][1] + (k === 'ofe' ? 0 : (1 - q) * 40), s, t >= a ? clamp((t - a) / 0.06, 0, 1) : 0);
+      const o = nos[k], a = sc.w(...quando[k]);
+      o.tr.desenha(seg(t, a - 0.05, k === 'ofe' ? 0.45 : 0.3, 'power2.out'));
+      const q = seg(t, a, 0.3, 'expo.out');
+      let s = mix(k === 'ofe' ? 1.5 : 1.25, 1, q); if (k === 'ofe' && t >= fim) s *= 1 + 0.12 * (1 - seg(t, fim, 0.45, 'power2.out'));
+      o.lb.setAttribute('opacity', vis(t, a)); o.lb.setAttribute('transform', `translate(${o.x},${o.y}) scale(${s}) translate(${-o.x},${-o.y})`);
     }
-    arestas.forEach((e, i) => {
-      const a = sc.w(...qa[i]), q = seg(t, a, 0.4, 'power2.out');
-      e.ln.setAttribute('stroke-dashoffset', e.L * (1 - q)); e.ln.setAttribute('opacity', t >= a ? 1 : 0);
-      const x = S.mix(e.p1[0], e.p2[0], q), y = S.mix(e.p1[1], e.p2[1], q);
-      e.ponta.setAttribute('transform', `translate(${x},${y}) rotate(${e.ang})`); e.ponta.setAttribute('opacity', t >= a ? 1 : 0);
-      // o sinal corre pela aresta depois de desenhada, e de novo no fecho
-      const fim = sc.w(10, 4);
-      const s1 = seg(t, a + 0.35, 0.5, 'power1.inOut'), s2 = seg(t, fim, 0.45, 'power1.inOut');
-      const s = t >= fim ? s2 : s1, viva = (t >= a + 0.35 && t < a + 0.85) || (t >= fim && t < fim + 0.45);
-      e.sinal.setAttribute('cx', S.mix(e.p1[0], e.p2[0], s)); e.sinal.setAttribute('cy', S.mix(e.p1[1], e.p2[1], s));
-      e.sinal.setAttribute('opacity', viva ? 1 : 0);
+    ar.forEach((e, i) => {
+      const a = sc.w(...qa[i]); e.s.desenha(seg(t, a, 0.4, 'power2.out'));
+      const s1 = seg(t, a + 0.4, 0.5, 'power1.inOut'), s2 = seg(t, fim, 0.5, 'power1.inOut'), s = t >= fim ? s2 : s1;
+      e.dot.setAttribute('cx', mix(e.p1[0], e.p2[0], s)); e.dot.setAttribute('cy', mix(e.p1[1], e.p2[1], s));
+      e.dot.setAttribute('opacity', (t >= a + 0.4 && t < a + 0.9) || (t >= fim && t < fim + 0.5) ? 1 : 0);
     });
   };
 };
+FX.final = () => { grupo(); return () => {}; };
 
-function marca(linhas, y) {        // [[texto, cor, [tela, palavra]], ...] centralizado, cada linha ocupa a largura
-  return sc => {
-    const g = el('g'); const ts = linhas.map(([s, cor]) => texto(g, s, { fill: cor, 'font-size': 100, style: "font-family:'Archivo Black';letter-spacing:-4px" }));
-    let tam = null;
-    return t => {
-      if (!tam || tam.some(x => !x)) tam = ts.map((e, i) => { const w = e.getComputedTextLength(); return w ? Math.min(linhas[i][3] || 240, 100 * 900 / w) : 0; });
-      let yy = y;
-      ts.forEach((e, i) => {
-        const fs = tam[i] || 100, a = sc.w(...linhas[i][2]), q = seg(t, a, 0.3, 'expo.out');
-        e.setAttribute('font-size', fs);
-        yy += i ? fs * 0.92 : 0;
-        const esc = S.mix(1.3, 1, q) * (1 + 0.03 * seg(t, a, 2.5, 'sine.out'));
-        e.setAttribute('transform', `translate(540,${yy}) scale(${esc})`);
-        e.setAttribute('opacity', t >= a ? clamp((t - a) / 0.05, 0, 1) : 0);
-        e.setAttribute('filter', 'url(#brilho)');
-      });
-    };
-  };
-}
-FX.marca = marca([['TATTOO', CREME, [0, 0], 210], ['BRAND.', VERM, [0, 0], 210]], 860);
-FX.marca2 = marca([['O', CREME, [0, 0], 90], ['PROFILE', CREME, [0, 1], 220], ['FUNNEL', VERM, [0, 2], 220]], 760);
-FX.final = sc => t => {};
-
-// brilho vermelho (assinatura do estilo)
-const defs = el('defs');
-const f = el('filter', { id: 'brilho', x: '-30%', y: '-60%', width: '160%', height: '220%' }, defs);
-el('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: 22, result: 'b' }, f);
-el('feFlood', { 'flood-color': VERM, 'flood-opacity': 0.8 }, f);
-el('feComposite', { in2: 'b', operator: 'in', result: 'g' }, f);
-const fm = el('feMerge', {}, f); el('feMergeNode', { in: 'g' }, fm); el('feMergeNode', { in: 'SourceGraphic' }, fm);
-
-// agrupa telas seguidas com o mesmo fx numa cena
+// cenas: telas seguidas com o mesmo fx
 const cenas = []; telas.forEach((tl, i) => {
   const nome = tl.op.fx; if (!nome) return;
-  const ult = cenas[cenas.length - 1];
-  if (ult && ult.nome === nome && ult.idx[ult.idx.length - 1] === i - 1) ult.idx.push(i); else cenas.push({ nome, idx: [i] });
+  const u = cenas[cenas.length - 1];
+  if (u && u.nome === nome && u.idx[u.idx.length - 1] === i - 1) u.idx.push(i); else cenas.push({ nome, idx: [i] });
 });
 cenas.forEach(c => {
-  const sc = cena(c.nome, c.idx), grupo = el('g', { opacity: 0 });
-  const antes = fxL.lastChild; const desenha = FX[c.nome](sc);
-  // move o que a cena criou para dentro do seu grupo
-  let n = grupo.nextSibling; while (n) { const nx = n.nextSibling; grupo.appendChild(n); n = nx; }
-  c.sc = sc; c.g = grupo; c.desenha = desenha;
+  const sc = cena(c.nome, c.idx), antes = lousa.childNodes.length;
+  c.desenha = FX[c.nome](sc);
+  c.g = lousa.lastChild; c.g.setAttribute('opacity', 0); c.sc = sc;
   c.idx.forEach(i => { telas[i].cena = c; });
 });
 
-// palavras-soco: o risco de luz atravessa a tela
+// ------------------------------------------------------------------ faíscas das palavras-soco
 const socos = []; telas.forEach(tl => tl.palavras.forEach(p => { if (p.soco) socos.push({ tl, p }); }));
-const marcasOcultas = telas.filter(tl => tl.op.fx === 'marca' || tl.op.fx === 'marca2' || (tl.op.oculto && /OR.AMENTO|LUCRO/.test(tl.palavras.map(p => p.el.textContent).join(' '))));
+function faiscas(t, tl) {
+  cx2.clearRect(0, 0, W, H);
+  tl.palavras.forEach((p, k) => {
+    if (!p.soco) return; const d = t - p.t; if (d < 0 || d > 0.9) return;
+    const r = S.rng(p.g * 13 + 5);
+    for (let i = 0; i < 64; i++) {
+      const lado = r() < 0.5 ? -1 : 1, ang = (r() - 0.5) * 0.9 + (lado < 0 ? Math.PI : 0), v = 700 + r() * 1700, dec = 2.6;
+      const dist = v * (1 - Math.exp(-dec * d)) / dec, x = p.cx + (r() - 0.5) * 300 + Math.cos(ang) * dist, y = p.cy + (r() - 0.5) * 120 + Math.sin(ang) * dist + 60 * d * d;
+      const vv = v * Math.exp(-dec * d) * 0.035, a = (1 - d / 0.9) * (0.5 + r() * 0.5);
+      cx2.strokeStyle = r() < 0.3 ? `rgba(255,226,214,${a})` : `rgba(255,${60 + r() * 60 | 0},30,${a})`;
+      cx2.lineWidth = 1.5 + r() * 2.5; cx2.beginPath(); cx2.moveTo(x, y); cx2.lineTo(x - Math.cos(ang) * vv, y - Math.sin(ang) * vv); cx2.stroke();
+    }
+  });
+}
 
-// ------------------------------------------------------------------ desenha o quadro
+// ------------------------------------------------------------------ quadro
 let atual = null;
 function acha(t) { let lo = 0, hi = telas.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (telas[m].ini <= t) lo = m; else hi = m - 1; } return telas[lo]; }
 
 function render(t) {
   mede();
-  const tl = acha(t);
+  const tl = acha(t), lous = !!tl.cena && tl.op.fx !== 'final';
   if (atual !== tl) {
     if (atual) atual.el.style.display = 'none';
     if (!tl.op.oculto) tl.el.style.display = 'block';
-    fundo.className = 'abs ' + tl.bg; atual = tl;
+    fundo.className = 'abs cheio ' + tl.bg; vinheta.className = 'abs cheio ' + tl.bg;
     cenas.forEach(c => c.g.setAttribute('opacity', c === tl.cena ? 1 : 0));
+    atual = tl;
   }
   if (tl.cena) tl.cena.desenha(t);
 
-  // câmera: empurra devagar durante a tela; tranco curto no soco
-  let tremor = 0;
-  tl.palavras.forEach(p => { if (p.soco && t >= p.t) tremor = Math.max(tremor, 1 - seg(t, p.t, 0.16, 'power2.out')); });
-  const rnd = S.rng(Math.floor(t * 30) + 3);
-  const jx = tremor * (rnd() - 0.5) * 22, jy = tremor * (rnd() - 0.5) * 22;
-  const push = 1 + 0.035 * seg(t, tl.ini, Math.max(0.6, tl.fim - tl.ini), 'sine.out');
-  if (!tl.op.oculto) {
-    tl.el.style.transformOrigin = `${tl.cx || 540}px ${tl.cy || 960}px`;
-    tl.el.style.transform = `translate(${jx}px,${jy}px) scale(${push})`;
-  }
-  fxL.style.transform = `translate(${jx * 0.6}px,${jy * 0.6}px)`;
+  // luz e faixas do fundo
+  const dur = Math.max(0.5, tl.fim - tl.ini), pp = seg(t, tl.ini, dur, 'none');
+  luz.style.opacity = tl.bg === 'k' ? 1 : 0;
+  luz.style.transform = `translate(${(tl.cx || 540) + tl.dir * 120 * (pp - 0.5)}px,${(tl.cy || 960)}px) scale(${0.9 + 0.2 * pp})`;
+  faixas.style.opacity = tl.bg === 'r' ? 1 : 0;
+  if (tl.bg === 'r') [...faixas.children].forEach((f, k) => { f.style.transform = `translate(${tl.dir * 200 * pp}px, ${300 + k * 900 + (tl.rng ? 0 : 0)}px) rotate(${-24 + k * 6}deg)`; });
 
-  // carimbo bate no começo da tela
+  // câmera: chicote na entrada, deriva 3D, tranco no soco
+  let tremor = 0;
+  tl.palavras.forEach(p => { if (p.soco && t >= p.t) tremor = Math.max(tremor, 1 - seg(t, p.t, 0.18, 'power2.out')); });
+  const rnd = S.rng(Math.floor(t * 30) + 3), jx = tremor * (rnd() - 0.5) * 34, jy = tremor * (rnd() - 0.5) * 34;
+  if (!tl.op.oculto) {
+    const wq = seg(t, tl.ini, 0.22, 'expo.out');
+    const whip = lous ? 0 : tl.dir * 520 * (1 - wq);
+    const ry = lous ? 0 : mix(tl.rotY, tl.rotY * 0.25, seg(t, tl.ini, dur, 'sine.out')), rx = lous ? 0 : tl.rotX * (1 - pp * 0.6);
+    const z = lous ? 30 * pp : mix(0, 170, seg(t, tl.ini, dur, 'sine.out'));
+    tl.el.style.transformOrigin = `${tl.cx || 540}px ${tl.cy || 960}px`;
+    tl.el.style.transform = `translate3d(${whip + jx}px,${jy}px,${z}px) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${lous ? 0 : tl.rotZ * (1 - pp)}deg)`;
+    tl.el.style.filter = lous ? 'none' : borrao((1 - wq) * 1.2);
+  }
+  lousa.style.transform = `translate(${jx * 0.5}px,${jy * 0.5}px)`;
+
   if (tl.op.carimbo) {
     const q = seg(t, tl.palavras[0].t, 0.22, 'expo.out');
-    tl.bloco.style.transform = `rotate(-4deg) scale(${S.mix(1.5, 1, q)})`;
-    tl.bloco.style.opacity = t >= tl.palavras[0].t ? 1 : 0;
+    tl.bloco.style.transform = `rotate(-5deg) scale(${mix(1.8, 1, q)})`; tl.bloco.style.opacity = vis(t, tl.palavras[0].t, 0.03);
   }
 
-  // cada palavra entra quando é dita
+  // palavras
+  const bgk = lous ? 'lousa' : tl.bg;
   tl.palavras.forEach((p, k) => {
     const a = p.t - 0.02;
     if (t < a) { p.el.style.opacity = 0; return; }
-    if (p.soco) {
-      const q = seg(t, a, 0.3, 'expo.out');
-      p.el.style.opacity = clamp((t - a) / 0.05, 0, 1);
-      p.el.style.transform = `scale(${S.mix(1.5, 1, q)})`;
-      p.el.style.filter = q > 0.98 ? 'none' : `blur(${(1 - q) * 26}px)`;
+    const vol = lous ? VOL.lousa : (p.dest || (p.soco && tl.bg === 'c')) ? VOL[tl.bg + 'd'] : VOL[tl.bg];
+    if (p.soco && !lous) {
+      const q = seg(t, a, 0.32, 'expo.out'), ab = 1 - seg(t, a, 0.35, 'power2.out');
+      p.el.style.opacity = vis(t, a, 0.04);
+      p.el.style.transform = `scale(${mix(2.4, 1, q)}) rotateX(${(1 - q) * 30}deg)`;
+      p.el.style.filter = borrao((1 - q) * 0.9);
+      p.el.style.textShadow = ab > 0.02 ? `${-10 * ab}px 0 0 rgba(0,240,255,${0.7 * ab}), ${10 * ab}px 0 0 rgba(255,20,40,${0.8 * ab}),` + vol : vol;
     } else {
-      const q = seg(t, a, 0.22, 'expo.out'), lado = p.li % 2 ? -1 : 1;
-      const dx = p.larga ? 0 : lado * 90 * (1 - q), dy = p.larga ? 60 * (1 - q) : 0;
-      p.el.style.opacity = clamp((t - a) / 0.06, 0, 1);
-      p.el.style.transform = `translate(${dx}px,${dy}px)`;
-      p.el.style.filter = q > 0.98 ? 'none' : `blur(${(1 - q) * 16}px)`;
+      const q = seg(t, a, 0.24, 'expo.out'), lado = (p.li + k) % 2 ? -tl.dir : tl.dir;
+      p.el.style.opacity = vis(t, a, 0.05);
+      p.el.style.transform = lous ? `translateY(${(1 - q) * 60}px)` : `translateX(${lado * 300 * (1 - q)}px) rotateY(${lado * -55 * (1 - q)}deg)`;
+      p.el.style.filter = lous ? (q > 0.98 ? 'none' : `blur(${(1 - q) * 12}px)`) : borrao(1 - q);
+      p.el.style.textShadow = vol;
     }
   });
+  faiscas(t, tl);
 
-  // risco de luz: nas palavras-soco e nos logos
-  let rq = -1, ry = 960;
-  const alvo = tl.palavras.filter(p => p.soco && t >= p.t).pop();
-  if (alvo) { rq = t - alvo.t; ry = alvo.cy || 960; }
-  if (marcasOcultas.includes(tl)) { const a = tl.palavras[tl.palavras.length - 1].t; if (t >= a) { rq = t - a; ry = tl.op.fx === 'marca2' ? 1050 : tl.op.fx === 'marca' ? 880 : (tl.cena && tl.cena.nome === 'mundo' ? 1200 : 1470); } }
-  if (rq >= 0 && rq < 0.75) {
-    const ab = seg(rq, 0, 0.2, 'expo.out'), some = seg(rq, 0.25, 0.5, 'power2.in');
+  // risco de luz no soco
+  const alvoS = tl.palavras.filter(p => p.soco && t >= p.t).pop();
+  const rq = alvoS ? t - alvoS.t : -1;
+  if (rq >= 0 && rq < 0.8 && !lous) {
+    const ab = seg(rq, 0, 0.18, 'expo.out'), some = seg(rq, 0.3, 0.5, 'power2.in');
     risco.style.opacity = 1 - some;
-    risco.style.transform = `translate(0px,${ry}px) scaleX(${ab}) scaleY(${1 + 0.6 * (1 - ab)})`;
+    risco.style.transform = `translate(0px,${(alvoS.cy || 960) + 10}px) rotate(${tl.rotZ * 0.6}deg) scaleX(${ab}) scaleY(${1 + 0.8 * (1 - ab)})`;
   } else risco.style.opacity = 0;
 }
 
-window.__mede = mede; window.__acha = acha; window.__render = render;
+window.__render = render;
 window.__timelines = window.__timelines || {};
 window.__timelines.main = S.play(render, { loop: false });
 })();
