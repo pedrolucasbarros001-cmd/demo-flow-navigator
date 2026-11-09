@@ -3,43 +3,73 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=1920, height=1200" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Open+Sans:wdth,wght@75,300;75,400&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Indie+Flower&family=JetBrains+Mono:wght@500&display=swap" />
 <script src="gsap.min.js"></script>
 <script src="rough.js"></script>
 <script src="studio.js"></script>
 <style>
-  /* preto inteiro, cereja como destaque, branco às vezes */
-  :root { --preto: #050505; --branco: #F2F0EC; --cinza: #8C8781; --cinza2: #5E5A56; --cereja: #C8102E; --cereja2: #E0274A; }
+  /* fundo preto; texto forte creme; destaque escrito à mão em vermelho; etiquetas em letra de máquina; cartões creme */
+  :root {
+    --preto: #0B0B0B; --creme: #EFECE5; --cinza: #8D8983; --cinza2: #5E5B57; --verm: #EB3B3B;
+    --card: #EFECE5; --card-esc: #161616; --borda-esc: #262626; --verde-wa: #D9FDD3;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1920px; height: 1200px; overflow: hidden; background: var(--preto); }
-  #root { position: relative; width: 1920px; height: 1200px; overflow: hidden; background: var(--preto);
-    font-family: 'Archivo', sans-serif; color: var(--branco); }
+  #root { position: relative; width: 1920px; height: 1200px; overflow: hidden; background: var(--preto); font-family: 'Inter Tight', sans-serif; }
   .abs { position: absolute; left: 0; top: 0; }
   .cheio { width: 1920px; height: 1200px; }
+  #fundo { background: var(--preto); }
   #brilho { width: 1700px; height: 1100px; margin: -550px 0 0 -850px; border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(200,16,46,.16) 0%, rgba(200,16,46,.05) 40%, rgba(5,5,5,0) 70%); }
-  #lousa text.rotulo { font-family: 'Open Sans', sans-serif; font-stretch: 75%; font-weight: 300; fill: var(--cinza); }
-  #lousa text.forte { font-family: 'Archivo', sans-serif; font-weight: 800; font-stretch: 100%; }
-  #palco { perspective: 2200px; perspective-origin: 960px 600px; }
-  .tela { display: none; width: 1920px; height: 1200px; transform-style: preserve-3d; }
+    background: radial-gradient(ellipse, rgba(235,59,59,.10) 0%, rgba(235,59,59,.03) 40%, rgba(0,0,0,0) 70%); }
+  #lousa text.mao { font-family: 'Indie Flower', cursive; }
+  #ui { perspective: 2600px; perspective-origin: 960px 640px; }
+  .cena-ui { position: absolute; left: 0; top: 0; width: 1920px; height: 1200px; display: none; transform-style: preserve-3d; }
+  .tela { display: none; width: 1920px; height: 1200px; }
   .bloco { position: absolute; }
-  .l { white-space: nowrap; line-height: 1.08; letter-spacing: -0.02em; }
+  .l { white-space: nowrap; line-height: 1.04; letter-spacing: -0.045em; }
   .l > span { display: inline-block; }
-  .w { display: inline-block; position: relative; font-weight: 700; color: var(--branco); will-change: transform, filter, opacity; }
-  .w.leve { font-weight: 400; color: var(--cinza); }
-  .w.dest { color: var(--cereja2); font-weight: 800; }
-  .w.forte { font-weight: 850; font-stretch: 112%; letter-spacing: -0.03em; }
-  .w.soco { font-weight: 850; letter-spacing: -0.03em; }
-  .w .b2 { color: var(--cereja2); }
-  .w .sub { position: absolute; left: 0; right: 0; bottom: -0.06em; height: 0.06em; min-height: 5px; background: var(--cereja); transform-origin: 0 50%; transform: scaleX(0); }
-  .tela.alto .w { text-shadow: 0 0 60px rgba(200,16,46,.28); }
+  .w { display: inline-block; position: relative; font-weight: 700; color: var(--creme); will-change: transform, filter, opacity, clip-path; }
+  .w.leve { font-weight: 600; color: var(--cinza); }
+  .w.forte { font-weight: 800; }
+  /* a palavra escrita à mão, como no iPad com Pencil */
+  .w.mao { font-family: 'Indie Flower', cursive; font-weight: 400; color: var(--verm); letter-spacing: 0; font-size: 1.22em; line-height: 0.8;
+    -webkit-text-stroke: 0.03em var(--verm); padding: 0 0.06em; }
+  .w .b2 { font-family: 'Indie Flower', cursive; font-weight: 400; color: var(--verm); letter-spacing: 0; -webkit-text-stroke: 0.03em var(--verm); font-size: 1.15em; }
+  .w svg.risco { position: absolute; left: -4%; width: 108%; height: 0.36em; bottom: -0.2em; overflow: visible; }
+  #rotulo { position: absolute; left: 110px; top: 78px; display: flex; align-items: center; gap: 20px; font: 500 22px 'JetBrains Mono', monospace; letter-spacing: .22em; color: var(--cinza); text-transform: uppercase; }
+  #rotulo .ck { width: 40px; height: 40px; border-radius: 50%; border: 2.5px solid var(--verm); display: flex; align-items: center; justify-content: center; color: var(--verm); font: 400 26px 'Indie Flower'; }
+  #capitulo { position: absolute; right: 110px; top: 82px; font: 500 22px 'JetBrains Mono', monospace; letter-spacing: .18em; color: var(--cinza2); }
+
+  /* componentes de interface */
+  .card { position: absolute; background: var(--card); border-radius: 30px; box-shadow: 0 40px 100px rgba(0,0,0,.55); }
+  .card.esc { background: var(--card-esc); border: 1px solid var(--borda-esc); }
+  .pill { position: absolute; display: flex; align-items: center; gap: 14px; height: 74px; padding: 0 30px 0 22px; border-radius: 40px;
+    background: var(--card); color: #141414; font: 600 30px 'Inter'; white-space: nowrap; box-shadow: 0 14px 34px rgba(0,0,0,.35); transform-origin: 0 50%; }
+  .pill i { width: 16px; height: 16px; border-radius: 50%; background: #BDBAB5; flex: none; }
+  .pill.cer { background: var(--verm); color: #fff; box-shadow: 0 16px 40px rgba(235,59,59,.35); font-size: 36px; height: 88px; padding: 0 38px 0 28px; }
+  .pill.cer i { background: rgba(255,255,255,.75); }
+  .pill.esc { background: #161616; color: var(--creme); border: 1px solid #2A2A2A; }
+  .pill.esc i { background: var(--verm); }
+  .msg { position: absolute; max-width: 620px; padding: 18px 24px 14px; border-radius: 22px; font: 400 29px/1.35 'Inter'; color: #111; background: #fff; box-shadow: 0 2px 2px rgba(0,0,0,.06); }
+  .msg.out { background: var(--verde-wa); }
+  .msg small { display: block; text-align: right; font-size: 18px; color: #7d8a7c; margin-top: 4px; }
+  .msg b { font-weight: 700; }
+  .tag { position: absolute; padding: 8px 16px; border-radius: 12px; font: 600 20px 'Inter'; letter-spacing: .02em; }
+  .barra { height: 16px; border-radius: 8px; background: #DAD6CF; }
+  .esc .barra { background: #2A2A2A; }
+  .ava { border-radius: 50%; background: #D9D5CE; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+  .ava svg { width: 62%; height: 78%; fill: #A9A49D; }
 </style>
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="253.04" data-width="1920" data-height="1200">
+  <div id="fundo" class="abs cheio"></div>
   <div id="brilho" class="abs"></div>
   <svg id="lousa" class="abs cheio" viewBox="0 0 1920 1200" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="ui" class="abs cheio"></div>
   <div id="palco" class="abs cheio"></div>
+  <div id="rotulo"><span class="ck">✓</span><span class="tx"></span></div>
+  <div id="capitulo"></div>
 </div>
 <script src="roteiro.js"></script>
 <script src="tempos.js"></script>
