@@ -13,7 +13,8 @@ const palavras = [];   // {txt, b (batida)}
 R.forEach((b, i) => b[1].split(/\s+/).filter(w => w && w !== '|').forEach(w => palavras.push({ txt: w.replace(/^[*^!_]+/, '').replace('/', ''), b: i })));
 
 // confere com o texto original
-const texto = fs.readFileSync(path.join(aqui, '..', 'roteiro', 'texto.txt'), 'utf8').split(/\s+/).map(limpa).filter(Boolean);
+const brutas = fs.readFileSync(path.join(aqui, '..', 'roteiro', 'texto.txt'), 'utf8').split(/\s+/).filter(w => limpa(w));
+const texto = brutas.map(limpa);
 const nossas = palavras.map(p => limpa(p.txt)).filter(Boolean);
 for (let i = 0; i < Math.max(texto.length, nossas.length); i++) {
   if (texto[i] !== nossas[i]) {
@@ -34,7 +35,7 @@ if (arq) {
   palavras.forEach((p, i) => {
     ini.push(+t.toFixed(3));
     const letras = limpa(p.txt).length;
-    let d = Math.min(0.58, Math.max(0.2, 0.12 + 0.04 * letras));
+    let d = Math.min(0.6, Math.max(0.22, 0.13 + 0.042 * letras));
     if (/[,]$/.test(p.txt)) d += 0.16;
     if (/[.:?]$/.test(p.txt)) d += 0.34;
     const fimBatida = !palavras[i + 1] || palavras[i + 1].b !== p.b;
@@ -46,7 +47,7 @@ if (arq) {
 const FIM = 3.2;   // segura o fecho
 const dur = +(ini[ini.length - 1] + 0.5 + FIM).toFixed(2);
 fs.writeFileSync(path.join(aqui, 'tempos.js'),
-  `// gerado por gera.cjs: início de cada palavra (s), na ordem do roteiro\nwindow.TEMPOS = ${JSON.stringify(ini)};\nwindow.DURACAO = ${dur};\n`);
+  `// gerado por gera.cjs: início de cada palavra (s) e a palavra como está no texto original\nwindow.TEMPOS = ${JSON.stringify(ini)};\nwindow.PALAVRAS = ${JSON.stringify(brutas)};\nwindow.DURACAO = ${dur};\n`);
 const idx = path.join(aqui, 'index.html');
 fs.writeFileSync(idx, fs.readFileSync(idx, 'utf8').replace(/data-duration="[0-9.]+"/, `data-duration="${dur}"`));
 console.log(`ok: ${palavras.length} palavras, ${R.length} telas, ${dur} s`);
