@@ -10,7 +10,7 @@ const vis = (t, a, d = 0.05) => (t >= a ? clamp((t - a) / d, 0, 1) : 0);
 const NS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
 const palco = $('palco'), fundo = $('fundo'), luz = $('luz'), faixas = $('faixas'), vinheta = $('vinheta'),
-      lousa = $('lousa'), risco = $('risco'), cv = $('faisca'), cx2 = cv.getContext('2d');
+      lousa = $('lousa'), risco = $('risco'), visor = $('visor'), tc = $('tc'), rec = $('rec'), cv = $('faisca'), cx2 = cv.getContext('2d');
 
 // filtros de borrão só na horizontal (o chicote da referência)
 const filtros = $('filtros');
@@ -59,6 +59,7 @@ const telas = R.map((b, i) => {
       if (dest) s.classList.add('dest');
       if (mk.includes('^')) s.classList.add('larga');
       if (soco) s.classList.add('soco');
+      if (soco && !tx.includes('/')) { s.textContent = ''; [...tx].forEach(ch => { const c = document.createElement('span'); c.className = 'ch'; c.textContent = ch; s.appendChild(c); }); }
       if (mk.includes('_')) s.classList.add('contorno');
       // amarração: palavra curta numa linha com mais palavras vira larga e pequena
       if (!mk && ws.length > 1 && CURTAS.has(limpa(tx))) s.classList.add('larga', 'mini');
@@ -73,7 +74,8 @@ const telas = R.map((b, i) => {
   const temSoco = palavras.some(p => p.soco);
   const al = op.al || (temSoco || op.fx ? 'c' : ['l', 'c', 'r'][Math.floor(rng() * 3)]);
   const dir = rng() < 0.5 ? -1 : 1;
-  return { i, bg, op, el, bloco, linhas, palavras, al, dir, rng,
+  const mov = op.fx && op.fx !== 'final' ? -1 : Math.floor(rng() * 6);
+  return { i, bg, op, el, bloco, linhas, palavras, al, dir, rng, mov,
     rotY: (rng() - 0.5) * 22, rotX: (rng() - 0.5) * 12, rotZ: (rng() - 0.5) * 5,
     ini: i === 0 ? 0 : palavras[0].t - 0.06 };
 });
@@ -106,8 +108,68 @@ function mede() {
     tl.bloco.style.left = x + 'px'; tl.bloco.style.top = y + 'px';
     tl.cx = x + r.width / 2; tl.cy = y + r.height / 2;
     tl.palavras.forEach(p => { const q = p.el.getBoundingClientRect(); p.cx = q.left + q.width / 2; p.cy = q.top + q.height * 0.5; });
+    montaCenario(tl);
     tl.el.style.display = 'none';
   });
+}
+
+// ------------------------------------------------------------------ cenário em profundidade (atrás do texto)
+const CODIGO = [
+  [['k', 'const '], ['t', 'perfil'], ['p', ' = '], ['k', 'novo '], ['t', 'Funil'], ['p', '({']],
+  [['p', '  conteudo: '], ['s', "'intencional'"], ['p', ',']],
+  [['p', '  teia: ['], ['s', "'post'"], ['p', ', '], ['s', "'story'"], ['p', ', '], ['s', "'dm'"], ['p', '],']],
+  [['p', '  oferta: '], ['k', 'true'], ['p', ',']],
+  [['p', '  zona: '], ['s', "'lucro'"]],
+  [['p', '});']],
+  [['c', '// sem orçamento no meio']],
+  [['t', 'perfil'], ['p', '.'], ['k', 'vender'], ['p', '('], ['t', 'audiencia'], ['p', ');']],
+];
+const COR_COD = { k: '#FF4A2E', t: '#F3F0E8', p: '#B9AFA6', s: '#EFA24A', c: '#6E625B' };
+function montaCenario(tl) {
+  if (tl.cen) { tl.cen.remove(); tl.cen = null; tl.camadas = null; }
+  if (tl.op.oculto || (tl.op.fx && tl.op.fx !== 'final')) return;
+  const r = S.rng(7000 + tl.i), cen = document.createElement('div'); cen.className = 'cen abs';
+  tl.el.insertBefore(cen, tl.bloco); tl.cen = cen; tl.camadas = [];
+  const cx = tl.cx, cy = tl.cy, bg = tl.bg;
+  const add = (html, z, extra, fn) => { const d = document.createElement('div'); d.className = 'cam'; d.innerHTML = html; Object.assign(d.style, extra); cen.appendChild(d); tl.camadas.push({ d, z, fn }); return d; };
+  // poeira com paralaxe em todo fundo escuro
+  if (bg !== 'c') for (let i = 0; i < 26; i++) {
+    const sz = 3 + r() * 10, x = -200 + r() * 1480, y = -200 + r() * 2320, z = -900 + r() * 1100, v = 10 + r() * 40;
+    add('', z, { left: x + 'px', top: y + 'px', width: sz + 'px', height: sz + 'px', borderRadius: '50%', background: bg === 'r' ? 'rgba(255,220,200,.5)' : 'rgba(255,110,80,.75)', boxShadow: `0 0 ${sz * 2}px rgba(255,60,30,.8)`, filter: z < -500 ? 'blur(3px)' : 'none' }, (d, t) => `translateY(${-v * t}px)`);
+  }
+  const palavra = tl.palavras.map(p => p.el.textContent).sort((a, b) => b.length - a.length)[0] || '';
+  const tipos = bg === 'r' ? ['eco', 'forma', 'raios', 'eco'] : bg === 'c' ? ['eco', 'codigo', 'forma', 'grade'] : ['eco', 'raios', 'grade', 'forma', 'codigo'];
+  const escolha = [tipos[Math.floor(r() * tipos.length)]];
+  if (r() < 0.5) { const o = tipos[Math.floor(r() * tipos.length)]; if (o !== escolha[0]) escolha.push(o); }
+  escolha.forEach(tp => {
+    if (tp === 'eco') {
+      const cor = bg === 'c' ? 'rgba(18,16,16,.16)' : bg === 'r' ? 'rgba(255,235,225,.28)' : 'rgba(223,25,4,.5)';
+      add(`<span style="font:400 560px/0.9 Anton;-webkit-text-stroke:3px ${cor};color:transparent;white-space:nowrap">${palavra}</span>`, -900,
+        { left: '0', top: (cy - 260) + 'px', width: '1080px', textAlign: 'center', filter: 'blur(2px)' }, (d, t) => `translateX(${tl.dir * -60 * seg(t, tl.ini, 3, 'none')}px) scale(1.7)`);
+    }
+    if (tp === 'raios') {
+      let ln = ''; for (let i = 0; i < 34; i++) { const a = r() * Math.PI * 2, r0 = 260 + r() * 160, r1 = r0 + 300 + r() * 900; ln += `<line x1="${cx + Math.cos(a) * r0}" y1="${cy + Math.sin(a) * r0}" x2="${cx + Math.cos(a) * r1}" y2="${cy + Math.sin(a) * r1}" stroke="${bg === 'r' ? 'rgba(255,230,220,.35)' : 'rgba(223,25,4,.55)'}" stroke-width="${1 + r() * 2}"/>`; }
+      add(`<svg width="1080" height="1920" viewBox="0 0 1080 1920">${ln}</svg>`, -350, { left: 0, top: 0 }, (d, t) => `rotate(${tl.dir * 6 * seg(t, tl.ini, 4, 'none')}deg)`).style.transformOrigin = `${cx}px ${cy}px`;
+    }
+    if (tp === 'grade') {
+      const cor = bg === 'c' ? 'rgba(18,16,16,.18)' : 'rgba(223,25,4,.45)';
+      add('', -150, { left: '-700px', top: (cy + 120) + 'px', width: '2480px', height: '2400px', transformOrigin: '50% 0', backgroundImage: `linear-gradient(${cor} 2px, transparent 2px), linear-gradient(90deg, ${cor} 2px, transparent 2px)`, backgroundSize: '90px 90px', WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,0) 60%)' },
+        (d, t) => { d.style.backgroundPosition = `0 ${-120 * seg(t, tl.ini, 4, 'none')}px`; return 'rotateX(76deg)'; });
+    }
+    if (tp === 'forma') {
+      const d0 = 640 + r() * 420, ox = (r() < 0.5 ? -1 : 1) * (240 + r() * 200), oy = (r() - 0.5) * 500;
+      add('', -420, { left: (cx + ox - d0 / 2) + 'px', top: (cy + oy - d0 / 2) + 'px', width: d0 + 'px', height: d0 + 'px', borderRadius: '50%', background: bg === 'r' ? 'rgba(40,0,0,.28)' : '#DF1904', boxShadow: bg === 'k' ? '0 0 160px rgba(223,25,4,.6)' : 'none' },
+        (d, t) => `scale(${mix(0.75, 1, seg(t, tl.ini, 0.5, 'expo.out'))})`);
+    }
+    if (tp === 'codigo') {
+      const html = `<div style="width:640px;padding:26px 30px 30px;background:#141010;border:1px solid #3A2C26;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45);font:500 25px/1.55 'JetBrains Mono',monospace;white-space:pre">`
+        + `<div style="display:flex;gap:10px;margin-bottom:18px"><i style="width:14px;height:14px;border-radius:50%;background:#DF1904"></i><i style="width:14px;height:14px;border-radius:50%;background:#5E4B42"></i><i style="width:14px;height:14px;border-radius:50%;background:#5E4B42"></i><span style="margin-left:14px;color:#6E625B;font-size:20px">tattoobrand.js</span></div>`
+        + CODIGO.map(l => '<div>' + l.map(([c, x]) => `<span style="color:${COR_COD[c]}">${x.replace(/</g, '&lt;')}</span>`).join('') + '</div>').join('') + '</div>';
+      const acima = cy > 960;
+      add(html, -520, { left: (r() < 0.5 ? 40 : 400) + 'px', top: (acima ? cy - 820 : cy + 330) + 'px', filter: 'blur(1.5px)' }, (d, t) => `rotateY(${tl.dir * 22}deg) translateY(${-40 * seg(t, tl.ini, 3, 'none')}px)`);
+    }
+  });
+  tl.visor = bg !== 'c' && r() < 0.28;
 }
 
 // ------------------------------------------------------------------ lousa (ilustrações no traço de marcador)
@@ -471,15 +533,30 @@ function render(t) {
   tl.palavras.forEach(p => { if (p.soco && t >= p.t) tremor = Math.max(tremor, 1 - seg(t, p.t, 0.18, 'power2.out')); });
   const rnd = S.rng(Math.floor(t * 30) + 3), jx = tremor * (rnd() - 0.5) * 34, jy = tremor * (rnd() - 0.5) * 34;
   if (!tl.op.oculto) {
-    const wq = seg(t, tl.ini, 0.22, 'expo.out');
-    const whip = lous ? 0 : tl.dir * 520 * (1 - wq);
-    const ry = lous ? 0 : mix(tl.rotY, tl.rotY * 0.25, seg(t, tl.ini, dur, 'sine.out')), rx = lous ? 0 : tl.rotX * (1 - pp * 0.6);
-    const z = lous ? 30 * pp : mix(0, 170, seg(t, tl.ini, dur, 'sine.out'));
+    const wq = seg(t, tl.ini, 0.22, 'expo.out'), ce = seg(t, tl.ini, Math.min(dur, 1.4), 'power3.out'), dv = seg(t, tl.ini, dur, 'sine.inOut');
+    let x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0;
+    const d = tl.dir;
+    switch (tl.mov) {
+      case 0: ry = mix(d * 40, d * 6, ce); z = mix(-150, 160, dv); x = d * 520 * (1 - wq); break;            // órbita
+      case 1: rx = mix(34, 10, ce); z = mix(-250, 140, dv); y = mix(120, 0, ce); break;                    // de baixo
+      case 2: z = mix(-1500, 0, seg(t, tl.ini, 0.38, 'expo.out')) + 120 * dv; rz = d * 3 * (1 - ce); break; // aproximação brusca
+      case 3: rz = mix(d * -11, d * -4, ce); ry = mix(d * 18, 0, ce); z = mix(0, 220, dv); x = d * 420 * (1 - wq); break; // holandês
+      case 4: rx = mix(-30, -8, ce); z = mix(150, 260, dv); y = mix(-140, 0, ce); break;                   // de cima
+      case 5: x = mix(d * -260, d * 120, dv) + d * 520 * (1 - wq); ry = mix(d * -14, d * 8, dv); z = 80 * dv; break; // lateral
+      default: z = lous ? 30 * pp : 0;
+    }
     tl.el.style.transformOrigin = `${tl.cx || 540}px ${tl.cy || 960}px`;
-    tl.el.style.transform = `translate3d(${whip + jx}px,${jy}px,${z}px) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${lous ? 0 : tl.rotZ * (1 - pp)}deg)`;
-    tl.el.style.filter = lous ? 'none' : borrao((1 - wq) * 1.2);
+    tl.el.style.transform = `translate3d(${x + jx}px,${y + jy}px,${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+    tl.el.style.filter = lous || tl.mov === 2 ? 'none' : borrao((1 - wq) * 1.2);
+    if (tl.camadas) tl.camadas.forEach(c => { const extra = c.fn ? c.fn(c.d, t) : ''; c.d.style.transform = `translateZ(${c.z}px) ${extra}`; });
   }
-  lousa.style.transform = `translate(${jx * 0.5}px,${jy * 0.5}px)`;
+  // a lousa também tem câmera: plano inclinado que assenta devagar
+  if (lous && tl.cena) {
+    const sc = tl.cena.sc, q = seg(t, sc.ini, Math.min(2.2, sc.fim - sc.ini), 'power3.out'), dv = seg(t, sc.ini, sc.fim - sc.ini, 'sine.inOut');
+    lousa.style.transform = `perspective(1700px) translate3d(${jx * 0.5}px,${jy * 0.5}px,${mix(-220, 60, dv)}px) rotateX(${mix(16, 3, q)}deg) rotateY(${mix(-12, 4, dv)}deg) rotateZ(${mix(-2, 0, q)}deg)`;
+  }
+  visor.style.display = tl.visor ? 'block' : 'none';
+  if (tl.visor) { const f = Math.floor(t * 30), ss = Math.floor(t) % 60, mm = Math.floor(t / 60); tc.textContent = `00:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}:${String(f % 30).padStart(2, '0')}`; rec.style.opacity = Math.floor(t * 2) % 2 ? 0.25 : 1; }
 
   if (tl.op.carimbo) {
     const q = seg(t, tl.palavras[0].t, 0.22, 'expo.out');
@@ -495,7 +572,8 @@ function render(t) {
     if (p.soco && !lous) {
       const q = seg(t, a, 0.32, 'expo.out'), ab = 1 - seg(t, a, 0.35, 'power2.out');
       p.el.style.opacity = vis(t, a, 0.04);
-      p.el.style.transform = `scale(${mix(2.4, 1, q)}) rotateX(${(1 - q) * 30}deg)`;
+      p.el.style.transform = `scale(${mix(1.9, 1, q)})`;
+      [...p.el.querySelectorAll('.ch')].forEach((c, j) => { const qc = seg(t, a + j * 0.028, 0.34, 'back.out(1.6)'); c.style.transform = `translateY(${(1 - qc) * -70}%) rotateX(${(1 - qc) * -85}deg)`; c.style.opacity = vis(t, a + j * 0.028, 0.04); });
       p.el.style.filter = borrao((1 - q) * 0.9);
       p.el.style.textShadow = ab > 0.02 ? `${-10 * ab}px 0 0 rgba(0,240,255,${0.7 * ab}), ${10 * ab}px 0 0 rgba(255,20,40,${0.8 * ab}),` + vol : vol;
     } else {
